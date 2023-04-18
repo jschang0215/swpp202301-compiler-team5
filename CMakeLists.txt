@@ -6,10 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
+set(BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Specify LLVM directory to use
-# set(LLVM_ROOT )
+get_filename_component(LLVM_ROOT ~/llvm-swpp/bin ABSOLUTE)
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVM in: ${LLVM_BINARY_DIR}")
@@ -80,7 +82,22 @@ function(add_opt_pass pass_name file_name)
     target_link_libraries(OptPasses INTERFACE ${pass_name})
 endfunction()
 
+# Run test for pass_name
+set(FILECHECK_RUN ${TEST_DIR}/run.sh)
+function(test_opt_pass pass_name)
+    # Get filechecks for pass_name opt
+    file(GLOB filecheck_files ${TEST_DIR}/filecheck/${pass_name}/*)
+
+    # Run test on each filecheck
+    foreach(filecheck ${filecheck_files})
+        add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
+    endforeach()
+endfunction()
+
 # /================= ADD OPT PASSES BELOW ================/
+include(CTest)
+add_opt_pass(SimplePass simple.cpp)
+test_opt_pass(SimplePass)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
