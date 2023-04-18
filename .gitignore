@@ -2,7 +2,6 @@
 .cache
 build
 docs
-*.ll
 *.s
 
 test/out/*
