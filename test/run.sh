@@ -1,19 +1,21 @@
-if [ "$#" -ne 5 ]; then
-    echo "Usage: LLVM_ROOT BUILD_DIR TEST_DIR PASS_NAME FILECHECK"
+if [ "$#" -ne 6 ]; then
+    echo "Usage: LLVM_ROOT ALIVE2_ROOT BUILD_DIR TEST_DIR PASS_NAME FILECHECK"
     exit 1
 fi
 
 LLVM_ROOT=$1
-BUILD_DIR=$2
-TEST_DIR=$3
+ALIVE2_ROOT=$2
+BUILD_DIR=$3
+TEST_DIR=$4
 
 # Pass name to be tested (ex. SimplePass)
-PASS_NAME=$4
+PASS_NAME=$5
 
 # Check file to be tested (ex. test/filecheck/SimplePass/simple1.ll)
-FILECHECK=$5
+FILECHECK=$6
 
 LLVM_OPT=${LLVM_ROOT}/opt
+ALIVE2_TV=${ALIVE2_ROOT}/build/alive-tv
 FILECHECK_BIN=${LLVM_ROOT}/FileCheck
 
 # Pass file (ex. build/libSimplePass.so)
@@ -29,8 +31,18 @@ ${LLVM_OPT} -load-pass-plugin=${PASS_FILE} -passes="${PASS_NAME}" ${FILECHECK} -
 # Filecheck
 ${FILECHECK_BIN} ${FILECHECK} < ${OUTPUT_FILE}
 
-if [ "$?" -eq 0 ]; then
-    exit 0
-else
+# Return nonzero when Filecheck fails
+if [ "$?" -ne 0 ]; then
     exit 1
 fi
+
+# Alive2
+ALIVE2_CORRECT_MSG="1 correct transformations"
+
+# Return nonzero when Alive2 fails
+if ! ${ALIVE2_TV} ${FILECHECK} ${OUTPUT_FILE} | grep -q "${ALIVE2_CORRECT_MSG}" > /dev/null; then
+	exit 1
+fi
+
+# All test passed
+exit 0
