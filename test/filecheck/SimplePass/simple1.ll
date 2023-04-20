@@ -1,5 +1,5 @@
-define i32 @f() {
-; CHECK-LABEL: @f()
+define i32 @main() {
+; CHECK-LABEL: @main()
 ; CHECK:       entry:
 ; CHECK-NEXT:     ret i32 0
 entry:

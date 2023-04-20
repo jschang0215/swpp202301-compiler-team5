@@ -5,3 +5,5 @@ docs
 *.s
 
 test/out/*
+test/asm/*
+test/log/*

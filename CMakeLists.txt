@@ -20,6 +20,10 @@ message(STATUS "Using LLVM in: ${LLVM_BINARY_DIR}")
 # Copy alive2 at home directory
 get_filename_component(ALIVE2_ROOT ~/alive2 ABSOLUTE)
 
+# Specify Interpreter directory to use
+# Copy alive2 at home directory with ~/interpreter-swpp
+get_filename_component(INTERPRETER_ROOT ~/interpreter-swpp ABSOLUTE)
+
 add_compile_options(-fPIC)
 
 add_library(Fs ${SRC_DIR}/fs.cpp)
@@ -94,7 +98,7 @@ function(test_opt_pass pass_name)
 
     # Run test on each filecheck
     foreach(filecheck ${filecheck_files})
-		add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} ${ALIVE2_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
+		add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} ${ALIVE2_ROOT} ${INTERPRETER_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
     endforeach()
 endfunction()
 

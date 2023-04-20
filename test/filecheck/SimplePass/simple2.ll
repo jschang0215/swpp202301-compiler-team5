@@ -1,9 +1,15 @@
-define i32 @f(i32 %a, i32 %b) {
-; CHECK-LABEL: @f(i32 %a, i32 %b)
+define void @f() {
+; CHECK-LABEL: @f()
+; CHECK-NEXT:     ret void
+  ret void
+}
+
+define i32 @main() {
+; CHECK-LABEL: @main()
 ; CHECK:       entry:
-; CHECK-NEXT:     [[C:%.*]] = add i32 [[A:%.*]], [[B:%.*]]
+; CHECK-NEXT:     call void @f()
 ; CHECK-NEXT:     ret i32 0
 entry:
-  %c = add i32 %a, %b
+  call void @f()
   ret i32 0
 }
