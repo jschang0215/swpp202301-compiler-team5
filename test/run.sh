@@ -3,7 +3,7 @@ if [ "$#" -ne 7 ]; then
     exit 1
 fi
 
-LLVM_ROOT=$1
+LLVM_ROOT=~/llvm-swpp/bin
 ALIVE2_ROOT=$2
 INTERPRETER_ROOT=$3
 BUILD_DIR=$4
