@@ -11,7 +11,7 @@ set(BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Specify LLVM directory to use
-get_filename_component(LLVM_ROOT ~/llvm-swpp/bin ABSOLUTE)
+get_filename_component(LLVM_ROOT ~/llvm-swpp ABSOLUTE)
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVM in: ${LLVM_BINARY_DIR}")

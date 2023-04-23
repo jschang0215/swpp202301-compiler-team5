@@ -1,0 +1,92 @@
+name: Pass Test
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: strikef/swpp-ci:latest
+
+    steps:
+      - name: alive2 clone
+        run: |
+          cp -r /opt/llvm ~/llvm-swpp
+          git clone https://github.com/AliveToolkit/alive2.git
+        
+      - uses: actions/cache@v3
+        id: alive-cache
+        name: check cache alive2
+        with:
+          path: alive2
+          key: ${{ runner.os }}-alive
+      # need build
+      - if: steps.alive_cache.outputs.cache-hits != 'true'
+        name: build alive2
+        run: |
+          cd alive2
+          git checkout 9ca7092c21e69b4e71c91b9280cff920234410dc
+          cmake -GNinja -Bbuild -DBUILD_TV=ON -DCMAKE_PREFIX_PATH="~/llvm-swpp;/opt/z3" -DCMAKE_BUILD_TYPE=Release -DZ3_INCLUDE_DIR=/opt/z3/include -DZ3_LIBRARIES=/opt/z3/lib64/libz3.so
+          cmake --build build
+          cd ..
+          
+      - uses: actions/checkout@v3
+        name: get swpp repo
+        with:
+          repository: snu-sf-class/swpp202301
+          path: swpp
+          ref: main
+      - name: patch alive2
+        run: |
+          cd alive2
+          git apply ../swpp/project/alive2-swpp-intrinsics.patch
+          ./build.sh
+      - uses: actions/checkout@v3
+        name: get compiler repo
+        with:
+          path: compiler
+      - uses: actions/cache@v3
+        name: check cache compiler
+        id: build-cache
+        with:
+          path: compiler/build
+          key: ${{ runner.os }}-compiler
+      # need build
+      - if: steps.build_cache.outputs.cache-hits != 'true'
+        name: build compiler
+        run: |
+          cd compiler
+          cmake -GNinja -Bbuild
+          cmake --build build --target swpp-compiler
+          cd ..
+        
+      - uses: actions/checkout@v3
+        name: get interpreter repo
+        with:
+          repository: snu-sf-class/swpp202301-interpreter
+          path: interpreter-swpp
+          ref: main
+      - uses: actions/cache@v3
+        name: check cache interpreter
+        id: interpreter-cache
+        with:
+          path: interpreter-swpp
+          key: ${{ runner.os }}-interpreter
+      # need build
+      - if: Steps.interpreter_cache.outputs.cache-hits != 'true'
+        name: build interpreter
+        run: |
+          cd interpreter-swpp
+          ./build.sh
+          cd ..
+          
+      - name: test
+        run: |
+          cp -r ./interpreter-swpp ~/
+          cp -r alive2 ~/
+          cd compiler/build
+          ctest --output-on-failure
+          
+
