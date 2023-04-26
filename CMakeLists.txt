@@ -106,6 +106,8 @@ endfunction()
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass)
+add_opt_pass(OraclePass oracle.cpp)
+test_opt_pass(OraclePass)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
