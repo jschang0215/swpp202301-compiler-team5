@@ -106,6 +106,8 @@ endfunction()
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass)
+add_opt_pass(AddSumPass add_sum.cpp)
+test_opt_pass(AddSumPass)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
