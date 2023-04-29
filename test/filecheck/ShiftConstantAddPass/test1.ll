@@ -1,3 +1,7 @@
+; Test constant shl to mul
+; @f tests shl to mul 1
+; @g tests shl to mul 2
+
 define i32 @main() {
 ; CHECK-LABEL: @main()
 ; CHECK:       entry:
