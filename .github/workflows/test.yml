@@ -14,30 +14,32 @@ jobs:
       - name: alive2 clone
         run: |
           ln -s /opt/llvm ~/llvm-swpp
-          git clone https://github.com/AliveToolkit/alive2.git
         
       - uses: actions/cache@v3
-        id: alive-cache
+        id: alive_cache
         name: check cache alive2
         with:
           path: ${{ github.workspace }}/alive2
           key: ${{ runner.os }}-alive
       # need build
-      - if: steps.alive_cache.outputs.cache-hits != 'true'
+      - if: steps.alive_cache.outputs.cache-hit != 'true'
         name: build alive2
         run: |
+          git clone https://github.com/AliveToolkit/alive2.git
           cd $GITHUB_WORKSPACE/alive2
           git checkout 9ca7092c21e69b4e71c91b9280cff920234410dc
           cmake -GNinja -Bbuild -DBUILD_TV=ON -DCMAKE_PREFIX_PATH="~/llvm-swpp;/opt/z3" -DCMAKE_BUILD_TYPE=Release -DZ3_INCLUDE_DIR=/opt/z3/include -DZ3_LIBRARIES=/opt/z3/lib64/libz3.so
           cmake --build build
           
-      - uses: actions/checkout@v3
+      - if: steps.alive_cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v3
         name: get swpp repo
         with:
           repository: snu-sf-class/swpp202301
           path: ${{ github.workspace }}/swpp
           ref: main
-      - name: patch alive2
+      - if: steps.alive_cache.outputs.cache-hit != 'true'
+        name: patch alive2
         run: |
           cd $GITHUB_WORKSPACE/alive2
           git apply ../swpp/project/alive2-swpp-intrinsics.patch
@@ -48,12 +50,12 @@ jobs:
           path: ${{ github.workspace }}/compiler
       - uses: actions/cache@v3
         name: check cache compiler
-        id: build-cache
+        id: build_cache
         with:
           path: ${{ github.workspace }}/compiler/build
           key: ${{ runner.os }}-compiler
       # need build
-      - if: steps.build_cache.outputs.cache-hits != 'true'
+      - if: steps.build_cache.outputs.cache-hit != 'true'
         name: build compiler
         run: |
           cd $GITHUB_WORKSPACE/compiler
@@ -68,12 +70,12 @@ jobs:
           ref: main
       - uses: actions/cache@v3
         name: check cache interpreter
-        id: interpreter-cache
+        id: interpreter_cache
         with:
           path: ${{ github.workspace }}/interpreter-swpp
           key: ${{ runner.os }}-interpreter
       # need build
-      - if: Steps.interpreter_cache.outputs.cache-hits != 'true'
+      - if: Steps.interpreter_cache.outputs.cache-hit != 'true'
         name: build interpreter
         run: |
           cd $GITHUB_WORKSPACE/interpreter-swpp
