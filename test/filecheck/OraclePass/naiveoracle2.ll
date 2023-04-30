@@ -23,15 +23,29 @@ entry:
 ; CHECK-NEXT:    i64 1, label %L1
 ; CHECK-NEXT:    i64 2, label %L2
 ; CHECK: L1:
-; CHECK-NEXT:  store i64 [[v1]], i64* [[p1]]
-; CHECK-NEXT:  store i64 [[v2]], i64* [[p2]]
-; CHECK-NEXT:  store i64 [[v3]], i64* [[p3]]
+; CHECK-NEXT:  [[v1t:%.*]] = trunc i64 [[v1]] to i32
+; CHECK-NEXT:  [[p1t:%.*]] = bitcast i64* [[p1]] to i32*
+; CHECK-NEXT:  store i32 [[v1t]], i32* [[p1t]]
+; CHECK-NEXT:  [[v2t:%.*]] = trunc i64 [[v2]] to i32
+; CHECK-NEXT:  [[p2t:%.*]] = bitcast i64* [[p2]] to i32*
+; CHECK-NEXT:  store i32 [[v2t]], i32* [[p2t]]
+; CHECK-NEXT:  [[v3t:%.*]] = trunc i64 [[v3]] to i32
+; CHECK-NEXT:  [[p3t:%.*]] = bitcast i64* [[p3]] to i32*
+; CHECK-NEXT:  store i32 [[v3t]], i32* [[p3t]]
 ; CHECK-NEXT:  ret i64 0
 ; CHECK: L2:
-; CHECK-NEXT:  store i64 [[v1]], i64* [[p1]]
-; CHECK-NEXT:  store i64 [[v2]], i64* [[p2]]
-; CHECK-NEXT:  store i64 [[v3]], i64* [[p3]]
-; CHECK-NEXT:  store i64 [[v4]], i64* [[p4]]
+; CHECK-NEXT:  [[v1t:%.*]] = trunc i64 [[v1]] to i32
+; CHECK-NEXT:  [[p1t:%.*]] = bitcast i64* [[p1]] to i32*
+; CHECK-NEXT:  store i32 [[v1t]], i32* [[p1t]]
+; CHECK-NEXT:  [[v2t:%.*]] = trunc i64 [[v2]] to i32
+; CHECK-NEXT:  [[p2t:%.*]] = bitcast i64* [[p2]] to i32*
+; CHECK-NEXT:  store i32 [[v2t]], i32* [[p2t]]
+; CHECK-NEXT:  [[v3t:%.*]] = trunc i64 [[v3]] to i32
+; CHECK-NEXT:  [[p3t:%.*]] = bitcast i64* [[p3]] to i32*
+; CHECK-NEXT:  store i32 [[v3t]], i32* [[p3t]]
+; CHECK-NEXT:  [[v4t:%.*]] = trunc i64 [[v4]] to i32
+; CHECK-NEXT:  [[p4t:%.*]] = bitcast i64* [[p4]] to i32*
+; CHECK-NEXT:  store i32 [[v4t]], i32* [[p4t]]
 ; CHECK-NEXT:  ret i64 0
 ; CHECK: end:
 ; CHECK-NEXT:  ret i64 0
