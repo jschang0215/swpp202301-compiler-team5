@@ -4,23 +4,25 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
-
+    
 jobs:
   build:
     runs-on: ubuntu-latest
     container: strikef/swpp-ci:latest
 
+
     steps:
       - name: alive2 clone
         run: |
           ln -s /opt/llvm ~/llvm-swpp
-        
+          
       - uses: actions/cache@v3
         id: alive_cache
         name: check cache alive2
         with:
           path: ${{ github.workspace }}/alive2
           key: ${{ runner.os }}-alive
+          
       # need build
       - if: steps.alive_cache.outputs.cache-hit != 'true'
         name: build alive2
@@ -30,7 +32,7 @@ jobs:
           git checkout 9ca7092c21e69b4e71c91b9280cff920234410dc
           cmake -GNinja -Bbuild -DBUILD_TV=ON -DCMAKE_PREFIX_PATH="~/llvm-swpp;/opt/z3" -DCMAKE_BUILD_TYPE=Release -DZ3_INCLUDE_DIR=/opt/z3/include -DZ3_LIBRARIES=/opt/z3/lib64/libz3.so
           cmake --build build
-          
+      # patch alive2
       - if: steps.alive_cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v3
         name: get swpp repo
@@ -61,13 +63,6 @@ jobs:
           cd $GITHUB_WORKSPACE/compiler
           cmake -GNinja -Bbuild
           cmake --build build --target swpp-compiler
-        
-      - uses: actions/checkout@v3
-        name: get interpreter repo
-        with:
-          repository: snu-sf-class/swpp202301-interpreter
-          path: ${{ github.workspace }}/interpreter-swpp
-          ref: main
       - uses: actions/cache@v3
         name: check cache interpreter
         id: interpreter_cache
@@ -75,7 +70,14 @@ jobs:
           path: ${{ github.workspace }}/interpreter-swpp
           key: ${{ runner.os }}-interpreter
       # need build
-      - if: Steps.interpreter_cache.outputs.cache-hit != 'true'
+      - if: steps.interpreter_cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v3
+        name: get interpreter repo
+        with:
+          repository: snu-sf-class/swpp202301-interpreter
+          path: ${{ github.workspace }}/interpreter-swpp
+          ref: main
+      - if: steps.interpreter_cache.outputs.cache-hit != 'true'
         name: build interpreter
         run: |
           cd $GITHUB_WORKSPACE/interpreter-swpp
