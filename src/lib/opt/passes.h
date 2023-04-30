@@ -12,5 +12,5 @@ public:
 
 class OraclePass : public PassInfoMixin<OraclePass> {
 public:
-  PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
