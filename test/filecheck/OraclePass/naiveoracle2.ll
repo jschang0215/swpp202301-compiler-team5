@@ -1,11 +1,25 @@
-define i32 @main(i32* %p, i32* %q, i32* %u, i32* %r, i32* %s, i32* %t, i32* %v) {
+define i32 @main() {
 entry:
 ; CHECK-LABEL: @main(
 ; CHECK:       entry:
+; CHECK-NEXT:  %p = alloca i32
+; CHECK-NEXT:  %q = alloca i32
+; CHECK-NEXT:  %u = alloca i32
+; CHECK-NEXT:  %r = alloca i32
+; CHECK-NEXT:  %s = alloca i32
+; CHECK-NEXT:  %t = alloca i32
+; CHECK-NEXT:  %v = alloca i32
 ; CHECK:  call i64 @oracle(i64 1, i64 1, i64* [[p:%.*]], i64 1, i64* [[q:%.*]], i64 2, i64* [[u:%.*]], i64 0, i64* null, i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
 ; CHECK-NEXT:  %x = load i32, i32* %p
 ; CHECK:  call i64 @oracle(i64 2, i64 1, i64* [[r:%.*]], i64 1, i64* [[s:%.*]], i64 1, i64* [[t:%.*]], i64 3, i64* [[v:%.*]],  i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
 ; CHECK-NEXT:  ret i32 0
+    %p = alloca i32
+    %q = alloca i32
+    %u = alloca i32
+    %r = alloca i32
+    %s = alloca i32
+    %t = alloca i32
+    %v = alloca i32
     store i32 1, i32* %p
     store i32 1, i32* %q
     store i32 2, i32* %u

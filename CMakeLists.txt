@@ -95,22 +95,26 @@ endfunction()
 
 # Run test for pass_name
 set(FILECHECK_RUN ${TEST_DIR}/run.sh)
-function(test_opt_pass pass_name)
+function(test_opt_pass pass_name do_alive2)
     # Get filechecks for pass_name opt
     file(GLOB filecheck_files ${TEST_DIR}/filecheck/${pass_name}/*)
 
     # Run test on each filecheck
     foreach(filecheck ${filecheck_files})
-		add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} ${ALIVE2_ROOT} ${INTERPRETER_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
+      if(${do_alive2})
+        add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} ${ALIVE2_ROOT} ${INTERPRETER_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
+      else()
+        add_test(NAME ${filecheck} COMMAND bash ${FILECHECK_RUN} ${LLVM_ROOT} -1 ${INTERPRETER_ROOT} ${BUILD_DIR} ${TEST_DIR} ${pass_name} ${filecheck})
+      endif()
     endforeach()
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
-test_opt_pass(SimplePass)
+test_opt_pass(SimplePass 1)
 add_opt_pass(OraclePass oracle.cpp)
-test_opt_pass(OraclePass)
+test_opt_pass(OraclePass 0)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)

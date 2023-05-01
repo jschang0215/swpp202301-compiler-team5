@@ -6,8 +6,9 @@
 PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   std::vector<std::vector<StoreInst *>> Clusters;
   // TotalInstructions: the number of instructions in all clusters (must be less
-  // than 50) PossibleClusterNum: the number of clusters that can be included in
-  // the oracle function
+  // than or equal to 48)
+  // PossibleClusterNum: the number of clusters that can be included in the
+  // oracle function
   int TotalInstructions = 0;
   int PossibleClusterNum = 0;
   for (auto &F : M) {
@@ -16,37 +17,47 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
       F.setName("not_oracle");
     for (auto &BB : F) {
       std::vector<StoreInst *> Stores;
+      int Insts = 1;
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
         // cluster
         if (auto *SI = dyn_cast<StoreInst>(&I)) {
           Stores.push_back(SI);
+          Insts++;
+          // if SI's first argument is not of type i64, add 1 to Insts
+          if (SI->getOperand(0)->getType() != Type::getInt64Ty(M.getContext()))
+            Insts++;
+          // if SI's second argument is not of type i64*, add 1 to Insts
+          if (SI->getOperand(1)->getType() !=
+              Type::getInt64PtrTy(M.getContext()))
+            Insts++;
           // if the current cluster has 7 instructions, add it to the clusters
-          // and clear the current cluster this is because the oracle function
-          // can only have up to 16 arguments
+          // and clear the current cluster
+          // this is because the oracle function can only have up to 16
+          // arguments
           if (Stores.size() >= 7) {
             auto Storescopy = Stores;
             Clusters.push_back(Storescopy);
-            TotalInstructions += Stores.size();
-            // increment the number of possible clusters only when the total
-            // number of instructions is less than 50 after adding the current
-            // cluster
-            if (TotalInstructions < 50)
+            TotalInstructions += Insts;
+            if (TotalInstructions <= 48)
               PossibleClusterNum++;
             Stores.clear();
+            Insts = 1;
           }
         } else {
           // the instruction is not a store instruction (end of the current
-          // cluster) if the current cluster has at least 3 instructions, add it
-          // to the clusters and clear the current cluster
+          // cluster)
+          // if the current cluster has at least 3 instructions, add it to the
+          // clusters and clear the current cluster
           if (Stores.size() >= 3) {
             auto Storescopy = Stores;
             Clusters.push_back(Storescopy);
-            TotalInstructions += Stores.size();
-            if (TotalInstructions < 50)
+            TotalInstructions += Insts;
+            if (TotalInstructions <= 48)
               PossibleClusterNum++;
           }
           Stores.clear();
+          Insts = 1;
         }
       }
       if (Stores.size() >= 3) {
@@ -54,15 +65,15 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
         // instructions, add it to the clusters
         auto Storescopy = Stores;
         Clusters.push_back(Storescopy);
-        TotalInstructions += Stores.size();
-        if (TotalInstructions < 50)
+        TotalInstructions += Insts;
+        if (TotalInstructions <= 48)
           PossibleClusterNum++;
       }
     }
   }
   // if there are no clusters, return
   if (Clusters.empty())
-    return PreservedAnalyses::all();
+    return PreservedAnalyses::none();
   // generating the oracle function type
   auto &CTX = M.getContext();
   std::vector<Type *> params;
@@ -87,16 +98,19 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
     auto iter = NewF->arg_begin();
     iter++;
     for (int j = 0; j < Clusters[i].size(); j++) {
-      auto *StoredValue = iter++;
-      auto *StoredAddr = iter++;
-      // truncate the stored value to original type
-      auto *Trunc = Builder_i.CreateTrunc(
-          StoredValue, Clusters[i][j]->getOperand(0)->getType());
+      Value *StoredValue = iter++;
+      Value *StoredAddr = iter++;
+      // if the original first argument in the instruction in the cluster is not
+      // i64, truncate the stored value
+      if (Clusters[i][j]->getOperand(0)->getType() != Type::getInt64Ty(CTX))
+        StoredValue = Builder_i.CreateTrunc(
+            StoredValue, Clusters[i][j]->getOperand(0)->getType());
       // cast the pointer to the original type
-      auto *Cast = Builder_i.CreateBitOrPointerCast(
-          StoredAddr, Clusters[i][j]->getOperand(1)->getType());
+      if (Clusters[i][j]->getOperand(1)->getType() != Type::getInt64PtrTy(CTX))
+        StoredAddr = Builder_i.CreateBitOrPointerCast(
+            StoredAddr, Clusters[i][j]->getOperand(1)->getType());
       // create a new store instruction
-      Builder_i.CreateStore(Trunc, Cast);
+      Builder_i.CreateStore(StoredValue, StoredAddr);
     }
     Builder_i.CreateRet(ConstantInt::get(Type::getInt64Ty(CTX), 0));
   }
@@ -138,7 +152,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
       Clusters[i][j]->eraseFromParent();
     }
   }
-  return PreservedAnalyses::all();
+  return PreservedAnalyses::none();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
