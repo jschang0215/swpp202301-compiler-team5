@@ -111,6 +111,9 @@ add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass)
 add_opt_pass(LoopsPrinterPass loop_analysis.cpp)
 test_opt_pass(LoopsPrinterPass)
+add_opt_pass(LoopBranchConditionPass loop_branch_condition.cpp)
+target_link_libraries(LoopBranchConditionPass PUBLIC LoopsPrinterPass)
+test_opt_pass(LoopBranchConditionPass)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
