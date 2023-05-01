@@ -109,6 +109,8 @@ endfunction()
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass)
+add_opt_pass(LoadToAloadPass load_to_aload.cpp)
+test_opt_pass(LoadToAloadPass)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
