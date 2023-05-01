@@ -9,9 +9,9 @@ entry:
 ; CHECK-NEXT:  %s = alloca i32
 ; CHECK-NEXT:  %t = alloca i32
 ; CHECK-NEXT:  %v = alloca i32
-; CHECK:  call i64 @oracle(i64 1, i64 1, i64* [[p:%.*]], i64 1, i64* [[q:%.*]], i64 2, i64* [[u:%.*]], i64 0, i64* null, i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
+; CHECK:  call i64 @oracle(i64 2, i64 1, i64* [[p:%.*]], i64 1, i64* [[q:%.*]], i64 2, i64* [[u:%.*]], i64 0, i64* null, i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
 ; CHECK-NEXT:  %x = load i32, i32* %p
-; CHECK:  call i64 @oracle(i64 2, i64 1, i64* [[r:%.*]], i64 1, i64* [[s:%.*]], i64 1, i64* [[t:%.*]], i64 3, i64* [[v:%.*]],  i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
+; CHECK:  call i64 @oracle(i64 1, i64 1, i64* [[r:%.*]], i64 1, i64* [[s:%.*]], i64 1, i64* [[t:%.*]], i64 3, i64* [[v:%.*]],  i64 0, i64* null, i64 0, i64* null, i64 0, i64* null)
 ; CHECK-NEXT:  ret i32 0
     %p = alloca i32
     %q = alloca i32
@@ -46,6 +46,9 @@ entry:
 ; CHECK-NEXT:  [[v3t:%.*]] = trunc i64 [[v3]] to i32
 ; CHECK-NEXT:  [[p3t:%.*]] = bitcast i64* [[p3]] to i32*
 ; CHECK-NEXT:  store i32 [[v3t]], i32* [[p3t]]
+; CHECK-NEXT:  [[v4t:%.*]] = trunc i64 [[v4]] to i32
+; CHECK-NEXT:  [[p4t:%.*]] = bitcast i64* [[p4]] to i32*
+; CHECK-NEXT:  store i32 [[v4t]], i32* [[p4t]]
 ; CHECK-NEXT:  ret i64 0
 ; CHECK: L2:
 ; CHECK-NEXT:  [[v1t:%.*]] = trunc i64 [[v1]] to i32
@@ -57,9 +60,6 @@ entry:
 ; CHECK-NEXT:  [[v3t:%.*]] = trunc i64 [[v3]] to i32
 ; CHECK-NEXT:  [[p3t:%.*]] = bitcast i64* [[p3]] to i32*
 ; CHECK-NEXT:  store i32 [[v3t]], i32* [[p3t]]
-; CHECK-NEXT:  [[v4t:%.*]] = trunc i64 [[v4]] to i32
-; CHECK-NEXT:  [[p4t:%.*]] = bitcast i64* [[p4]] to i32*
-; CHECK-NEXT:  store i32 [[v4t]], i32* [[p4t]]
 ; CHECK-NEXT:  ret i64 0
 ; CHECK: end:
 ; CHECK-NEXT:  ret i64 0
