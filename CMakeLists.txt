@@ -108,6 +108,8 @@ endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
 include(CTest)
+add_opt_pass(SimplePass simple.cpp)
+test_opt_pass(SimplePass 1)
 add_opt_pass(ShiftConstantAddPass shift_constant_add.cpp)
 test_opt_pass(ShiftConstantAddPass 1)
 
