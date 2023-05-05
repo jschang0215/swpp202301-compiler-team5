@@ -80,6 +80,7 @@ static bool constantAddSub(Instruction *I, ConstantInt *constVal,
               funcName, val->getType(), val->getType());
       for (int i = 0; i < std::abs(constValSExt); i++)
         val = Builder.CreateCall(func, {val});
+      I->replaceAllUsesWith(val);
       return true;
     }
     /*
@@ -94,6 +95,7 @@ static bool constantAddSub(Instruction *I, ConstantInt *constVal,
               funcName, val->getType(), val->getType());
       for (int i = 0; i < std::abs(constValSExt); i++)
         val = Builder.CreateCall(func, {val});
+      I->replaceAllUsesWith(val);
       return true;
     }
   }
