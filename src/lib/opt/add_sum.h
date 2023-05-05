@@ -35,6 +35,8 @@ private:
                     Function &F);
   void eliminateDeadAdd(Function &F);
   void createAddDependencyTree(BasicBlock &BB, std::map<Value *, AddNode *> &addDependencyTree);
+  unsigned int defaultCost(AddNode *node, std::map<Value *, AddNode *> &addDependencyTree, std::set<AddNode *> history);
+  unsigned int optimizedCost(std::vector<Value *> leafNodes);
 };
 
 #endif

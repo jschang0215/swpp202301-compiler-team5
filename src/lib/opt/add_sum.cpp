@@ -200,6 +200,38 @@ void AddSumPass::createAddDependencyTree(BasicBlock &BB, std::map<Value *, AddNo
   }
 }
 
+/* Calculate cost of original code */
+unsigned int AddSumPass::defaultCost(AddNode *node, std::map<Value *, AddNode *> &addDependencyTree, std::set<AddNode *> history) {
+  if (node->Children.empty())
+    return 0;
+
+  if (history.count(node) > 0)
+    return 0;
+  
+  unsigned int cost = 0;
+
+  for (auto &child : node->Children) {
+    cost += defaultCost(child, addDependencyTree, history);
+    history.insert(child);
+  }
+  cost += 5;
+  
+  return cost;
+}
+
+/* Calculate cost when sum instruction conversion is applied */
+unsigned int AddSumPass::optimizedCost(std::vector<Value *> leafNodes) {
+  int n = leafNodes.size();
+
+  if (n <= 8)
+    return 10;
+
+  if ((n - 8) % 7 == 1)
+    return 5 + 10 * ((n - 8) / 7 + 1);
+  else
+    return 10 + 10 * ((n - 8) / 7 + 1);
+}
+
 PreservedAnalyses AddSumPass::run(Function &F, FunctionAnalysisManager &FAM) {
   bool changed = false;
   SmallVector<Instruction *, 8> toErase;
@@ -221,8 +253,8 @@ PreservedAnalyses AddSumPass::run(Function &F, FunctionAnalysisManager &FAM) {
       std::vector<Value *> leafNodes;
       getLeafNodes(addDependencyTree[node], leafNodes);
 
-      /* Apply optimization only when there is more than 2 operands */
-      if (leafNodes.size() <= 2)
+      /* Apply optimization only if optimized cost is more expensive */
+      if (optimizedCost(leafNodes) > defaultCost(addDependencyTree[node], addDependencyTree, std::set<AddNode *>()))
         continue;
 
       replaceToSum(node, leafNodes, F);

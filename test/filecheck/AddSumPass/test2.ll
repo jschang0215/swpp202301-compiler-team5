@@ -14,14 +14,17 @@ entry:
 define i32 @f(i32 %x) {
 ; CHECK-LABEL: @f(i32 %x)
 ; CHECK:       entry:
-; CHECK-NEXT:     %0 = call i32 @int_sum_i32(i32 %x, i32 1, i32 %x, i32 1, i32 %x, i32 1, i32 %x, i32 1)
-; CHECK-NEXT:     %1 = call i32 @int_sum_i32(i32 %0, i32 %x, i32 1, i32 %x, i32 1, i32 %x, i32 1, i32 %x)
-; CHECK-NEXT:     %2 = add i32 %1, 1
-; CHECK-NEXT:     ret i32 %2
+; CHECK-NEXT:     %0 = call i32 @int_sum_i32(i32 %x, i32 1, i32 %x, i32 2, i32 %x, i32 3, i32 %x, i32 4)
+; CHECK-NEXT:     %1 = add i32 %0, 5
+; CHECK-NEXT:     ret i32 %1
 entry:
   %0 = add i32 %x, 1
-  %1 = add i32 %0, %0
-  %2 = add i32 %1, %1
-  %3 = add i32 %2, %2
-  ret i32 %3
+  %1 = add i32 %0, %x
+  %2 = add i32 %1, 2
+  %3 = add i32 %x, 3
+  %4 = add i32 %2, %3
+  %5 = add i32 %x, 4
+  %6 = add i32 %4, %5
+  %7 = add i32 %6, 5
+  ret i32 %7
 }
