@@ -1,7 +1,4 @@
-#include "passes.h"
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "add_sum.h"
 
 /*
  * Helper function that returns type of Value *V
@@ -29,7 +26,7 @@ void AddSumPass::getLeafNodes(AddNode *node, std::vector<Value *> &leafNodes) {
 
 /*
  * Get nodes in addDependencyTree that are used in other than add instruction.
- * These nodes are refered as 'usefule' nodes.
+ * These nodes are refered as 'useful' nodes.
  *
  * @usefulNodes:          result to store 'useful' nodes
  * @addDependencyTree:    addDepedencyTree
@@ -118,7 +115,8 @@ void AddSumPass::replaceToSum(Value *value, std::vector<Value *> &leafNodes,
                                      leafNodes.begin() + i + 8);
         i += 8;
       } else {
-        /* Next, start with previous sum instruction result and fill with leafNodes */
+        /* Next, start with previous sum instruction result and fill with
+         * leafNodes */
         chunk = std::vector<Value *>(leafNodes.begin() + i,
                                      leafNodes.begin() + i + 7);
         chunk.insert(chunk.begin(), sum);
@@ -166,7 +164,7 @@ void AddSumPass::eliminateDeadAdd(Function &F) {
   PassManagerBuilder PMB;
   PMB.populateFunctionPassManager(FPM);
 
-  /* 
+  /*
    * Repeat -adce optimization untill there is no change in code
    * -adce does not optimize fully when calling only once.
    */
@@ -176,6 +174,30 @@ void AddSumPass::eliminateDeadAdd(Function &F) {
     FPM.run(F);
     curInstCount = std::distance(inst_begin(F), inst_end(F));
   } while (prevInstCount != curInstCount);
+}
+
+/*
+ * Contrust add dependecy Tree in basic block.
+ * Result is stored in @addDependencyTree.
+ */
+void AddSumPass::createAddDependencyTree(BasicBlock &BB, std::map<Value *, AddNode *> &addDependencyTree) {
+  for (Instruction &I : BB) {
+    if (I.getOpcode() == Instruction::Add) {
+      Value *Result = &I;
+      addDependencyTree[Result] = new AddNode{Result};
+
+      for (int i = 0; i < 2; i++) {
+        Value *operand = I.getOperand(i);
+
+        if (!addDependencyTree.count(operand)) {
+          addDependencyTree[operand] = new AddNode{operand};
+        }
+
+        addDependencyTree[Result]->Children.push_back(
+            addDependencyTree[operand]);
+      }
+    }
+  }
 }
 
 PreservedAnalyses AddSumPass::run(Function &F, FunctionAnalysisManager &FAM) {
@@ -189,27 +211,10 @@ PreservedAnalyses AddSumPass::run(Function &F, FunctionAnalysisManager &FAM) {
   for (BasicBlock &BB : F) {
     std::map<Value *, AddNode *> addDependencyTree;
 
+    createAddDependencyTree(BB, addDependencyTree);
+
     /* Nodes that are also used besides add instruction */
     std::set<Value *> usefulNodes;
-
-    for (Instruction &I : BB) {
-      if (I.getOpcode() == Instruction::Add) {
-        Value *Result = &I;
-        addDependencyTree[Result] = new AddNode{Result};
-
-        for (int i = 0; i < 2; i++) {
-          Value *operand = I.getOperand(i);
-          
-          if (!addDependencyTree.count(operand)) {
-            addDependencyTree[operand] = new AddNode{operand};
-          }
-
-          addDependencyTree[Result]->Children.push_back(
-              addDependencyTree[operand]);
-        }
-      }
-    }
-
     getUsefulNodes(usefulNodes, addDependencyTree, F);
 
     for (auto &node : usefulNodes) {
