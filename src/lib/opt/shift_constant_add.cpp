@@ -23,7 +23,7 @@ static std::string getTypeAsString(Value *V) {
  * @Operator:   operator to be substituted
  * @Builder:    builder of caller function
  */
-static void shiftToOp(Instruction *I, Instruction::BinaryOps Operator,
+void ShiftConstantAddPass::shiftToOp(Instruction *I, Instruction::BinaryOps Operator,
                       IRBuilder<> &Builder) {
   Value *val = I->getOperand(0);
   Value *n = I->getOperand(1);
@@ -53,9 +53,9 @@ static bool constantAddSub(Instruction *I, ConstantInt *constVal,
 
   /* Cehck is instruction is add or sub */
   bool isAdd = false, isSub = false;
-  if (auto *add = dyn_cast<AddOperator>(I))
+  if (dyn_cast<AddOperator>(I))
     isAdd = true;
-  if (auto *sub = dyn_cast<SubOperator>(I))
+  if (dyn_cast<SubOperator>(I))
     isSub = true;
 
   /*
@@ -80,7 +80,6 @@ static bool constantAddSub(Instruction *I, ConstantInt *constVal,
               funcName, val->getType(), val->getType());
       for (int i = 0; i < std::abs(constValSExt); i++)
         val = Builder.CreateCall(func, {val});
-      I->replaceAllUsesWith(val);
       return true;
     }
     /*
@@ -95,7 +94,6 @@ static bool constantAddSub(Instruction *I, ConstantInt *constVal,
               funcName, val->getType(), val->getType());
       for (int i = 0; i < std::abs(constValSExt); i++)
         val = Builder.CreateCall(func, {val});
-      I->replaceAllUsesWith(val);
       return true;
     }
   }
