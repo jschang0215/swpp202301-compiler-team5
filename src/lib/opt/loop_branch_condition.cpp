@@ -1,4 +1,5 @@
 #include "loop_branch_condition.h"
+#include "llvm/IR/PassManager.h"
 
 using namespace LoopBranch;
 
@@ -10,11 +11,10 @@ using namespace LoopBranch;
  */
 void LoopBranch::LoopBranchConditionPass::insertInversion(LLVMContext &ctx,
                                                           BranchInst *br) {
-  outs() << "insert inversion\n";
-  SelectInst *inversion = SelectInst::Create(
-      br->getCondition(),
-      ConstantInt::getBool(IntegerType::getInt1Ty(ctx), false),
-      ConstantInt::getBool(IntegerType::getInt1Ty(ctx), true), "", br);
+  IRBuilder<> builder(br);
+  Value *cond = br->getCondition();
+  Value *inversion = builder.CreateSelect(cond, ConstantInt::getBool(IntegerType::getInt1Ty(ctx), false),
+      ConstantInt::getBool(IntegerType::getInt1Ty(ctx), true));
   br->setCondition(inversion);
   br->swapSuccessors();
 }
@@ -34,6 +34,8 @@ LoopBranch::LoopBranchConditionPass::run(Function &F,
 
   LoopBranch::LoopAnalysis a;
   LoopBranch::Loops loops = a.run(F, FAM);
+  bool changed = false;
+
   exit_conditions.clear();
   for (BasicBlock &BBh : F) { // get all exit condition...
     for (auto &[br, c] : loops.getExitBranches(&BBh)) {
@@ -53,6 +55,7 @@ LoopBranch::LoopBranchConditionPass::run(Function &F,
     // find inversion case
     // all usage is exit branch and exit when false
     if (cmp && cmp->getNumUses() == uses.size() && true_case == uses.size()) {
+      changed = true;
       cmp->setPredicate(cmp->getInversePredicate());
       for (auto &[br, c] : uses)
         br->swapSuccessors();
@@ -60,11 +63,14 @@ LoopBranch::LoopBranchConditionPass::run(Function &F,
     }
 
     for (auto &[br, c] : uses)
-      if (c)
+      if (c){
         insertInversion(F.getContext(), br);
+        changed = true;
+      }
+       
   }
 
-  return PreservedAnalyses::all();
+  return changed?PreservedAnalyses::none():PreservedAnalyses::all();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
