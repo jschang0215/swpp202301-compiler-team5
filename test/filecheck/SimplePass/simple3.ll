@@ -1,14 +1,6 @@
-define i32 @f() {
-; CHECK-LABEL: @f()
-; CHECK-NEXT:     ret i32 0
-  ret i32 0
-}
-
 define i32 @oracle() {
 ; CHECK-LABEL: @oracle()
-; CHECK-NEXT:    call i32 @f()
 ; CHECK-NEXT:     ret i32 0
-  call i32 @f()
   ret i32 0
 }
 

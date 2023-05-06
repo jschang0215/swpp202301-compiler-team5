@@ -7,10 +7,11 @@ using namespace LoopBranch;
 /*
  * Find simple loop by DFS
  *
- * @BBh:    header block
- * @noe:    traveling basic block
- * @blocks: founded basic blocks in loop
- * @DT:     dominator tree
+
+ * @BBh     header block
+ * @now     traveling basic block
+ * @blocks  found basic blocks in loop
+ * @DT      dominator tree
  */
 void LoopBranch::Loops::findSimpleLoop(BasicBlock *BBh, BasicBlock *now,
                                        set<BasicBlock *> &blocks,
@@ -27,9 +28,9 @@ void LoopBranch::Loops::findSimpleLoop(BasicBlock *BBh, BasicBlock *now,
 /*
  * Add simple loop to whole loop
  *
- * @BBh:    header block
- * @BBt:    tail block (source of back edge)
- * @DT:     dominator tree
+ * @BBh     header block
+ * @BBt     tail block (source of back edge)
+ * @DT      dominator tree
  */
 void LoopBranch::Loops::addSimpleLoop(BasicBlock *BBh, BasicBlock *BBt,
                                       DominatorTree &DT) {
@@ -41,10 +42,10 @@ void LoopBranch::Loops::addSimpleLoop(BasicBlock *BBh, BasicBlock *BBt,
 }
 
 /*
- * Recalculate loops in funcion
+ * Recalculate loops in given funcion
  *
- * @F:      target function
- * @FAM:    function analysis manager
+ * @F       target function
+ * @FAM     function analysis manager
  */
 void LoopBranch::Loops::recalculate(Function &F, FunctionAnalysisManager &FAM) {
   DominatorTree &DT = FAM.getResult<DominatorTreeAnalysis>(F);
@@ -67,7 +68,8 @@ void LoopBranch::Loops::recalculate(Function &F, FunctionAnalysisManager &FAM) {
 /*
  * Find exit branches of loop
  *
- * @BBh:      header block
+ * @BBh       header block
+ * @return    set of exit branch instruction and condition
  */
 set<pair<BranchInst *, bool>>
 LoopBranch::Loops::getExitBranches(BasicBlock *BBh) {
@@ -94,7 +96,7 @@ LoopBranch::Loops::getExitBranches(BasicBlock *BBh) {
 /*
  * Print loops
  *
- * @OS:      output stream
+ * @OS       output stream
  */
 void LoopBranch::Loops::print(raw_ostream &OS) {
   for (auto &[head, loop] : loops) {
