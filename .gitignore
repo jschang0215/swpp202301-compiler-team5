@@ -3,6 +3,7 @@
 build
 docs
 *.s
+.clangd
 
 test/out/*
 test/asm/*
