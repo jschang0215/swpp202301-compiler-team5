@@ -113,6 +113,8 @@ endfunction()
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass 1)
+add_opt_pass(ShiftConstantAddPass shift_constant_add.cpp)
+test_opt_pass(ShiftConstantAddPass 1)
 add_opt_pass(OraclePass oracle.cpp)
 test_opt_pass(OraclePass 0)
 
