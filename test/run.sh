@@ -51,10 +51,13 @@ fi
 # Alive2
 ALIVE2_CORRECT_MSG="0 incorrect transformations"
 
-# Return nonzero when Alive2 fails
-if ! ${ALIVE2_TV} ${FILECHECK} ${OUTPUT_FILE} | grep -q "${ALIVE2_CORRECT_MSG}" > /dev/null; then
-    echo "Alive2 failed..."
-	exit 1
+# if ALIVE2_ROOT is not -1, run alive2
+if [ "${ALIVE2_ROOT}" != "-1" ]; then
+    # Return nonzero when Alive2 fails
+    if ! ${ALIVE2_TV} ${FILECHECK} ${OUTPUT_FILE} | grep -q "${ALIVE2_CORRECT_MSG}" > /dev/null; then
+        echo "Alive2 failed..."
+        exit 1
+    fi
 fi
 
 # Interpreter testing
