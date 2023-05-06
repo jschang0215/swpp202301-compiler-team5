@@ -4,6 +4,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include "./add_sum.h"
 
 using namespace llvm;
 
