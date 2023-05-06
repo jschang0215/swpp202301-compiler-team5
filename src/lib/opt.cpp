@@ -27,6 +27,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add function-level opt passes below
     FPM.addPass(SimplePass());
+    FPM.addPass(LoopBranch::LoopBranchConditionPass());
     FPM.addPass(AddSumPass());
     FPM.addPass(ShiftConstantAddPass());
 
