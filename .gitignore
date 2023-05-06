@@ -4,6 +4,7 @@ build
 docs
 *.s
 build.sh
+.clangd
 
 test/out/*
 test/asm/*

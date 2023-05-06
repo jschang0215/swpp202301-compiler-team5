@@ -20,3 +20,8 @@ private:
   void shiftToOp(Instruction *I, Instruction::BinaryOps Operator,
                   IRBuilder<> &Builder);
 };
+
+class OraclePass : public PassInfoMixin<OraclePass> {
+public:
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
+};
