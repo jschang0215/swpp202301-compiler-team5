@@ -19,7 +19,6 @@ std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
   for (auto &F : M) {
     for (auto &BB : F) {
       Cluster *C = new Cluster();
-
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
         // cluster
