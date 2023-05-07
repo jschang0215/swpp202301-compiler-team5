@@ -1,3 +1,5 @@
+; this test checks if oracle optimization in multiple functions works correctly
+
 define i64 @f(i64 %x, i64 %y, i64 %z) {
 entry:
 ; CHECK-LABEL: @f(

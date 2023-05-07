@@ -1,3 +1,5 @@
+; this test checks if the upper bound of 50 llvm instructions in an oracle works correctly
+
 define i32 @main() {
 entry:
 ; CHECK-LABEL: @main(

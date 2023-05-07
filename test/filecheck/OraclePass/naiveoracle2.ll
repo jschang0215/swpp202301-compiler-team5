@@ -1,3 +1,5 @@
+; this test checks if a case with more than one cluster works properly
+
 define i32 @main() {
 entry:
 ; CHECK-LABEL: @main(

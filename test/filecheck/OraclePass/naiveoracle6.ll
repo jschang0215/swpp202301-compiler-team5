@@ -1,3 +1,5 @@
+; this test checks if an already existing function named oracle is successfully converted into a function named not_oracle
+
 define i64 @oracle(i64 %x, i64 %y, i64 %z) {
 entry:
 ; CHECK-LABEL: @not_oracle(

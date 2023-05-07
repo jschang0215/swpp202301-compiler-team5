@@ -1,3 +1,5 @@
+; this test checks if the lower bound of three store instructions works correctly
+
 define i32 @main() {
 entry:
 ; CHECK-LABEL: @main(

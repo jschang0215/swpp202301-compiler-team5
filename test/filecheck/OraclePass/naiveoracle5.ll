@@ -1,3 +1,5 @@
+; this test checks if the cluster size priority works correctly
+
 define i64 @main() {
 entry:
 ; CHECK-LABEL: @main(

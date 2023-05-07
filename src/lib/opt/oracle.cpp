@@ -10,9 +10,10 @@ public:
   std::vector<StoreInst *> stores;
   int insts;
   Cluster() { insts = 1; }
+  static std::vector<Cluster> getClusters(Module &M, int &possibleClusterNum);
 };
 
-std::vector<Cluster> getClusters(Module &M, int &possibleClusterNum) {
+std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
   std::vector<Cluster> clusters;
 
   for (auto &F : M) {
@@ -105,8 +106,6 @@ void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
       Value *StoredValue = iter++;
       Value *StoredAddr = iter++;
 
-      // if the original first argument in the instruction in the cluster is not
-      // i64, truncate the stored value
       if (clusters[i].stores[j]->getOperand(0)->getType() !=
           Type::getInt64Ty(CTX))
         StoredValue = Builder_i.CreateTrunc(
@@ -179,7 +178,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   // possibleClusterNum: the number of clusters that can be included
   int possibleClusterNum = 0;
 
-  auto clusters = getClusters(M, possibleClusterNum);
+  auto clusters = Cluster::getClusters(M, possibleClusterNum);
 
   // if there are no clusters, return
   if (clusters.empty())
