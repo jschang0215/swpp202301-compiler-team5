@@ -27,6 +27,9 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add function-level opt passes below
     FPM.addPass(SimplePass());
+    FPM.addPass(LoopBranch::LoopBranchConditionPass());
+    FPM.addPass(AddSumPass());
+    FPM.addPass(ShiftConstantAddPass());
     FPM.addPass(ToAload::LoadToAloadPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
@@ -34,6 +37,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
+    MPM.addPass(OraclePass());
 
     MPM.run(*__M, __MAM);
     sc::print_ir::printIRIfVerbose(*__M, "After optimization");
