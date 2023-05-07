@@ -1,66 +1,74 @@
 #include "passes.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include <algorithm>
 #include <vector>
 
-void pushToClusters(std::vector<std::vector<StoreInst *>> &clusters,
-                    std::vector<StoreInst *> &stores, int &insts,
-                    int &possibleClusterNum, int &totalInstructions) {
-  auto storescopy = stores;
-  clusters.push_back(storescopy);
-  totalInstructions += insts;
-  if (totalInstructions <= 48)
-    possibleClusterNum++;
-}
+class Cluster {
+public:
+  std::vector<StoreInst *> stores;
+  int insts;
+  Cluster() { insts = 1; }
+  static std::vector<Cluster> getClusters(Module &M, int &possibleClusterNum);
+};
 
-std::vector<std::vector<StoreInst *>> getClusters(Module &M,
-                                                  int &possibleClusterNum) {
-  std::vector<std::vector<StoreInst *>> clusters;
-  // totalInstructions: the number of instructions in all clusters (<=48)
-  int totalInstructions = 0;
+std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
+  std::vector<Cluster> clusters;
 
   for (auto &F : M) {
     for (auto &BB : F) {
-      std::vector<StoreInst *> stores;
-
-      int insts = 1;
+      Cluster *C = new Cluster();
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
         // cluster
         if (auto *SI = dyn_cast<StoreInst>(&I)) {
-          stores.push_back(SI);
+          C->stores.push_back(SI);
 
-          insts++;
+          C->insts++;
           if (SI->getOperand(0)->getType() != Type::getInt64Ty(M.getContext()))
-            insts++;
+            C->insts++;
           if (SI->getOperand(1)->getType() !=
               Type::getInt64PtrTy(M.getContext()))
-            insts++;
+            C->insts++;
 
           // if the current cluster has 7 insts, add it to clusters and clear
           // current cluster because oracle can only have up to 16 args
-          if (stores.size() >= 7) {
-            pushToClusters(clusters, stores, insts, possibleClusterNum,
-                           totalInstructions);
-            stores.clear();
-            insts = 1;
+          if (C->stores.size() >= 7) {
+            clusters.push_back(*C);
+            C = new Cluster();
           }
         } else {
           // the instruction is not store (end of the current cluster)
           // if the current cluster has at least 3 instructions, add to clusters
-          if (stores.size() >= 3)
-            pushToClusters(clusters, stores, insts, possibleClusterNum,
-                           totalInstructions);
-          stores.clear();
-          insts = 1;
+          if (C->stores.size() >= 3)
+            clusters.push_back(*C);
+          C = new Cluster();
         }
       }
-      if (stores.size() >= 3)
-        // at the end of the basic block, if the current cluster has at least 3
-        // instructions, add it to the clusters
-        pushToClusters(clusters, stores, insts, possibleClusterNum,
-                       totalInstructions);
+      // at the end of the basic block, if the current cluster has at least 3
+      // instructions, add it to the clusters
+      if (C->stores.size() >= 3)
+        clusters.push_back(*C);
+    }
+  }
+
+  // stable sort by the number of LLVM instructions in descending order
+  std::stable_sort(
+      clusters.begin(), clusters.end(),
+      [](const Cluster &a, const Cluster &b) { return a.insts > b.insts; });
+
+  // totalInstructions: the number of instructions in all clusters (<=48)
+  int totalInstructions = 0;
+  // iterate from the first element of clusters until the total number of
+  // instructions is less than or equal to 48
+  for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
+    totalInstructions += iter->insts;
+    possibleClusterNum++;
+    if (totalInstructions > 48) {
+      totalInstructions -= iter->insts;
+      possibleClusterNum--;
+      break;
     }
   }
   return clusters;
@@ -82,8 +90,7 @@ Function *makeOracle(Module &M, LLVMContext &CTX) {
   return NewF;
 }
 
-void fillInOracle(Function *NewF,
-                  std::vector<std::vector<StoreInst *>> clusters,
+void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
                   int possibleClusterNum, LLVMContext &CTX) {
   auto *NewBB = BasicBlock::Create(CTX, "entry", NewF);
 
@@ -94,19 +101,19 @@ void fillInOracle(Function *NewF,
 
     auto iter = NewF->arg_begin();
     iter++;
-    for (int j = 0; j < clusters[i].size(); j++) {
+    for (int j = 0; j < clusters[i].stores.size(); j++) {
       Value *StoredValue = iter++;
       Value *StoredAddr = iter++;
 
-      // if the original first argument in the instruction in the cluster is not
-      // i64, truncate the stored value
-      if (clusters[i][j]->getOperand(0)->getType() != Type::getInt64Ty(CTX))
+      if (clusters[i].stores[j]->getOperand(0)->getType() !=
+          Type::getInt64Ty(CTX))
         StoredValue = Builder_i.CreateTrunc(
-            StoredValue, clusters[i][j]->getOperand(0)->getType());
+            StoredValue, clusters[i].stores[j]->getOperand(0)->getType());
       // cast the pointer to the original type
-      if (clusters[i][j]->getOperand(1)->getType() != Type::getInt64PtrTy(CTX))
+      if (clusters[i].stores[j]->getOperand(1)->getType() !=
+          Type::getInt64PtrTy(CTX))
         StoredAddr = Builder_i.CreateBitOrPointerCast(
-            StoredAddr, clusters[i][j]->getOperand(1)->getType());
+            StoredAddr, clusters[i].stores[j]->getOperand(1)->getType());
       // create a new store instruction
       Builder_i.CreateStore(StoredValue, StoredAddr);
     }
@@ -128,36 +135,35 @@ void fillInOracle(Function *NewF,
   }
 }
 
-void replaceStoreWithOracle(std::vector<std::vector<StoreInst *>> clusters,
+void replaceStoreWithOracle(std::vector<Cluster> &clusters,
                             int possibleClusterNum, LLVMContext &CTX,
                             Function *NewF) {
   for (int i = 0; i < possibleClusterNum; i++) {
-    IRBuilder<> Builder(clusters[i][0]);
+    IRBuilder<> Builder(clusters[i].stores[0]);
     std::vector<Value *> args;
 
     // the first argument is the cluster number
     args.push_back(ConstantInt::get(Type::getInt64Ty(CTX), i + 1));
 
     // the next Cluster[i].size() * 2 args are the store values and addresses
-    for (int j = 0; j < clusters[i].size(); j++) {
-
+    for (auto I : clusters[i].stores) {
       // cast the stored value to i64 and the stored address to i64*
-      auto *StoredValue = clusters[i][j]->getOperand(0);
-      auto *StoredAddr = clusters[i][j]->getOperand(1);
+      auto *StoredValue = I->getOperand(0);
+      auto *StoredAddr = I->getOperand(1);
 
       args.push_back(Builder.CreateSExt(StoredValue, Type::getInt64Ty(CTX)));
       args.push_back(
           Builder.CreateBitOrPointerCast(StoredAddr, Type::getInt64PtrTy(CTX)));
     }
     // the rest of the arguments are 0 and null
-    for (int j = clusters[i].size(); j < 7; j++) {
+    for (int j = clusters[i].stores.size(); j < 7; j++) {
       args.push_back(ConstantInt::get(Type::getInt64Ty(CTX), 0));
       args.push_back(ConstantPointerNull::get(Type::getInt64PtrTy(CTX)));
     }
 
     Builder.CreateCall(NewF, args);
-    for (int j = 0; j < clusters[i].size(); j++) {
-      clusters[i][j]->eraseFromParent();
+    for (auto I : clusters[i].stores) {
+      I->eraseFromParent();
     }
   }
 }
@@ -171,8 +177,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   // possibleClusterNum: the number of clusters that can be included
   int possibleClusterNum = 0;
 
-  std::vector<std::vector<StoreInst *>> clusters =
-      getClusters(M, possibleClusterNum);
+  auto clusters = Cluster::getClusters(M, possibleClusterNum);
 
   // if there are no clusters, return
   if (clusters.empty())
@@ -180,7 +185,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
 
   auto &CTX = M.getContext();
 
-  Function *NewF = makeOracle(M, CTX);
+  auto *NewF = makeOracle(M, CTX);
   fillInOracle(NewF, clusters, possibleClusterNum, CTX);
 
   replaceStoreWithOracle(clusters, possibleClusterNum, CTX, NewF);

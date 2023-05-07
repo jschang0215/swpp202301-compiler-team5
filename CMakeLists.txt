@@ -112,7 +112,7 @@ endfunction()
 # /================= ADD OPT PASSES BELOW ================/
 include(CTest)
 add_opt_pass(SimplePass simple.cpp)
-test_opt_pass(SimplePass)
+test_opt_pass(SimplePass 1)
 add_opt_pass(LoopsPrinterPass loop_analysis.cpp)
 test_opt_pass(LoopsPrinterPass 1)
 add_opt_pass(LoopBranchConditionPass loop_branch_condition.cpp)
