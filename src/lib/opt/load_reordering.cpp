@@ -103,20 +103,16 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, LoadInst *L,
  */
 bool LoadReorderingPass::isDependent(LoadInst *L, Instruction *O) {
   for (Use &U : O->operands()) {
-    if (U->getType()->isPointerTy()) {
-      if (U.get() == L->getPointerOperand()) {
-        return true;
-      }
-      if (isSamePointer(U.get(), L->getPointerOperand(), L, O)) {
-        return true;
-      }
+    if (U.get() == L->getPointerOperand()) {
+      return true;
+    }
+    if (isSamePointer(U.get(), L->getPointerOperand(), L, O)) {
+      return true;
     }
   }
   for (User *U : O->users()) {
-    if (U->getType()->isPointerTy()) {
-      if (U == L) {
-        return true;
-      }
+    if (U == L) {
+      return true;
     }
   }
   return false;
@@ -139,11 +135,23 @@ bool LoadReorderingPass::iterateBack(LoadInst *LI) {
       return moveInstruction(LI, target);
     }
   }
-  if (&LI->getParent()->front() == LI) {
+  if (LI->getParent()->getFirstNonPHI() == LI) {
     return false;
   }
-  LI->moveBefore(&LI->getParent()->front());
-  return true;
+  Instruction *first = LI->getParent()->getFirstNonPHI();
+  if (LI->getParent() == first->getParent()) {
+    BasicBlock::iterator it(first);
+    while (dyn_cast<LoadInst>(&*it) && (&*it != LI)) {
+      it++;
+    }
+    if (&*it == LI) {
+      return false;
+    }
+    LI->moveBefore(first);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 PreservedAnalyses LoadReorderingPass::run(Function &F,
