@@ -7,6 +7,7 @@
 #include "./loop_analysis.h"
 #include "./loop_branch_condition.h"
 #include "./add_sum.h"
+#include "./load_to_aload.h"
 
 using namespace llvm;
 
