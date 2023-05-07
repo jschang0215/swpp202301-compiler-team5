@@ -124,6 +124,8 @@ add_opt_pass(ShiftConstantAddPass shift_constant_add.cpp)
 test_opt_pass(ShiftConstantAddPass 1)
 add_opt_pass(OraclePass oracle.cpp)
 test_opt_pass(OraclePass 0)
+add_opt_pass(LoadReorderingPass load_reordering.cpp)
+test_opt_pass(LoadReorderingPass 1)
 add_opt_pass(LoadToAloadPass load_to_aload.cpp)
 test_opt_pass(LoadToAloadPass 1)
 
