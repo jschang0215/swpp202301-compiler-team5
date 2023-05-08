@@ -1,5 +1,6 @@
 #include "opt.h"
 #include "./opt/passes.h"
+#include "opt/recursive_branch_condition.h"
 
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
@@ -32,6 +33,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(ShiftConstantAddPass());
     FPM.addPass(ToAload::LoadToAloadPass());
     FPM.addPass(LoadReorderingPass());
+    FPM.addPass(LoopBranch::RecursiveBranchConditionPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
