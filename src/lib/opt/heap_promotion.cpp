@@ -50,6 +50,20 @@ static bool isUsedAsFuncArg(Value *Var) {
 }
 
 /*
+ * Check if a Value is used as a return value
+ *
+ * @Var:      value to check
+ * return:    true if the value is used as a return value
+ */
+static bool isUsedAsReturn(Value *Var) {
+  for (User *U : Var->users()) {
+    if (auto *RI = dyn_cast<ReturnInst>(U)) {
+      return true;
+    }
+  }
+  return false;
+}
+/*
  * Find a matching free call from of related variables.
  * Assume collectrlatedVar is called for malloced variable.
  *
@@ -117,6 +131,20 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
 
     // Skip if used as function call argument
     if (usedAsFuncArg)
+      continue;
+
+    // Check if the allocated memory or any related variable is used as a
+    // return value
+    bool usedAsReturn = false;
+    for (Value *Var : relatedVar) {
+      if (isUsedAsReturn(Var)) {
+        usedAsReturn = true;
+        break;
+      }
+    }
+
+    // Skip if used as return value
+    if (usedAsReturn)
       continue;
 
     outs() << "Found: " << *MallocCall << "\n";
