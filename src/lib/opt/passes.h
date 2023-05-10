@@ -9,6 +9,7 @@
 #include "./add_sum.h"
 #include "./load_to_aload.h"
 #include "./load_reordering.h"
+#include "./oracle.h"
 
 using namespace llvm;
 
@@ -24,9 +25,4 @@ public:
 private:
   void shiftToOp(Instruction *I, Instruction::BinaryOps Operator,
                   IRBuilder<> &Builder);
-};
-
-class OraclePass : public PassInfoMixin<OraclePass> {
-public:
-  PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };

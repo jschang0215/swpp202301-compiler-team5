@@ -1,24 +1,47 @@
-#include "passes.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include <algorithm>
-#include <vector>
+#include "oracle.h"
+#include "loop_analysis.h"
 
-class Cluster {
-public:
-  std::vector<StoreInst *> stores;
-  int insts;
-  Cluster() { insts = 1; }
-  static std::vector<Cluster> getClusters(Module &M, int &possibleClusterNum);
-};
+std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
+  // stable sort by in_loop then insts in descending order
+  std::stable_sort(clusters.begin(), clusters.end(),
+                   [](const Cluster &a, const Cluster &b) {
+                     if (a.in_loop == b.in_loop)
+                       return a.insts > b.insts;
+                     return a.in_loop > b.in_loop;
+                   });
 
-std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
+  std::vector<Cluster> ret;
+  // totalInstructions: the number of instructions in all clusters (<=48)
+  int totalInstructions = 0;
+  // iterate from the first element of clusters until the total number of
+  // instructions is less than or equal to 48
+  for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
+    totalInstructions += iter->insts;
+    ret.push_back(*iter);
+    if (totalInstructions > 48) {
+      ret.pop_back();
+      break;
+    }
+  }
+  return ret;
+}
+
+std::vector<Cluster> Cluster::getClusters(Module &M) {
   std::vector<Cluster> clusters;
 
   for (auto &F : M) {
+    // get function analysis manager
+    FunctionAnalysisManager FAM;
+    FAM.registerPass([&] { return LoopBranch::LoopAnalysis(); });
+
+    // get loop analysis
+    auto &loops = FAM.getResult<LoopBranch::LoopAnalysis>(F);
+
     for (auto &BB : F) {
       Cluster *C = new Cluster();
+      // in_loop is the number of loops that the current cluster is in
+      C->in_loop = loops.containigLoop(&BB).size();
+
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
         // cluster
@@ -36,6 +59,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
           // current cluster because oracle can only have up to 16 args
           if (C->stores.size() >= 7) {
             clusters.push_back(*C);
+            delete C;
             C = new Cluster();
           }
         } else {
@@ -43,6 +67,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
           // if the current cluster has at least 3 instructions, add to clusters
           if (C->stores.size() >= 3)
             clusters.push_back(*C);
+          delete C;
           C = new Cluster();
         }
       }
@@ -50,27 +75,10 @@ std::vector<Cluster> Cluster::getClusters(Module &M, int &possibleClusterNum) {
       // instructions, add it to the clusters
       if (C->stores.size() >= 3)
         clusters.push_back(*C);
+      delete C;
     }
   }
 
-  // stable sort by the number of LLVM instructions in descending order
-  std::stable_sort(
-      clusters.begin(), clusters.end(),
-      [](const Cluster &a, const Cluster &b) { return a.insts > b.insts; });
-
-  // totalInstructions: the number of instructions in all clusters (<=48)
-  int totalInstructions = 0;
-  // iterate from the first element of clusters until the total number of
-  // instructions is less than or equal to 48
-  for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
-    totalInstructions += iter->insts;
-    possibleClusterNum++;
-    if (totalInstructions > 48) {
-      totalInstructions -= iter->insts;
-      possibleClusterNum--;
-      break;
-    }
-  }
   return clusters;
 }
 
@@ -91,11 +99,11 @@ Function *makeOracle(Module &M, LLVMContext &CTX) {
 }
 
 void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
-                  int possibleClusterNum, LLVMContext &CTX) {
+                  LLVMContext &CTX) {
   auto *NewBB = BasicBlock::Create(CTX, "entry", NewF);
 
   std::vector<BasicBlock *> BBs;
-  for (int i = 0; i < possibleClusterNum; i++) {
+  for (int i = 0; i < clusters.size(); i++) {
     BBs.push_back(BasicBlock::Create(CTX, "L" + std::to_string(i + 1), NewF));
     IRBuilder<> Builder_i(BBs[i]);
 
@@ -128,17 +136,16 @@ void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
   // adding the switch statement to the entry block
   IRBuilder<> Builder(NewBB);
   auto *Switch =
-      Builder.CreateSwitch(NewF->arg_begin(), EndBB, possibleClusterNum);
+      Builder.CreateSwitch(NewF->arg_begin(), EndBB, clusters.size());
 
-  for (int i = 0; i < possibleClusterNum; i++) {
+  for (int i = 0; i < clusters.size(); i++) {
     Switch->addCase(ConstantInt::get(Type::getInt64Ty(CTX), i + 1), BBs[i]);
   }
 }
 
-void replaceStoreWithOracle(std::vector<Cluster> &clusters,
-                            int possibleClusterNum, LLVMContext &CTX,
+void replaceStoreWithOracle(std::vector<Cluster> &clusters, LLVMContext &CTX,
                             Function *NewF) {
-  for (int i = 0; i < possibleClusterNum; i++) {
+  for (int i = 0; i < clusters.size(); i++) {
     IRBuilder<> Builder(clusters[i].stores[0]);
     std::vector<Value *> args;
 
@@ -174,10 +181,8 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
       F.setName("not_oracle");
   }
 
-  // possibleClusterNum: the number of clusters that can be included
-  int possibleClusterNum = 0;
-
-  auto clusters = Cluster::getClusters(M, possibleClusterNum);
+  auto clusters = Cluster::getClusters(M);
+  clusters = Cluster::processClusters(clusters);
 
   // if there are no clusters, return
   if (clusters.empty())
@@ -186,9 +191,9 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   auto &CTX = M.getContext();
 
   auto *NewF = makeOracle(M, CTX);
-  fillInOracle(NewF, clusters, possibleClusterNum, CTX);
+  fillInOracle(NewF, clusters, CTX);
 
-  replaceStoreWithOracle(clusters, possibleClusterNum, CTX, NewF);
+  replaceStoreWithOracle(clusters, CTX, NewF);
   return PreservedAnalyses::none();
 }
 

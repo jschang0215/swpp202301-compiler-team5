@@ -66,6 +66,30 @@ void LoopBranch::Loops::recalculate(Function &F, FunctionAnalysisManager &FAM) {
 }
 
 /*
+ * Find loop containing given basic block
+ *
+ * @BBh     header block
+ * @return  set of basic block in loop
+ */
+set<BasicBlock *> LoopBranch::Loops::getLoop(BasicBlock *BBh) {
+  if (loops.find(BBh) == loops.end())
+    return {};
+  return loops[BBh];
+}
+
+/*
+ * Find loop containing given basic block
+ *
+ * @BB      target basic block
+ * @return  set of loop containing given basic block
+ */
+set<BasicBlock *> LoopBranch::Loops::containigLoop(BasicBlock *BB) {
+  if (inside_of.find(BB) == inside_of.end())
+    return {};
+  return inside_of[BB];
+}
+
+/*
  * Find exit branches of loop
  *
  * @BBh       header block
