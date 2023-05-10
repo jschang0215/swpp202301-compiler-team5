@@ -129,7 +129,7 @@ add_opt_pass(LoadReorderingPass load_reordering.cpp)
 add_opt_pass(LoadToAloadPass load_to_aload.cpp)
 #test_opt_pass(LoadToAloadPass 1)
 add_opt_pass(HeapPromotionPass heap_promotion.cpp)
-test_opt_pass(HeapPromotionPass 1)
+test_opt_pass(HeapPromotionPass 0)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)

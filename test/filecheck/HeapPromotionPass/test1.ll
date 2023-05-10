@@ -1,4 +1,5 @@
 ; Test where all mallocs can be promoted to stack
+; Output: call, call1, call2 should be found
 
 define i32 @main() #0 {
 ; CHECK:      entry:
