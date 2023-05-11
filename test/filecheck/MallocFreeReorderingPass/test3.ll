@@ -1,3 +1,5 @@
+; Test various cases
+
 define i32 @main() #0 {
 ; CHECK:        entry:
 ; CHECK-NEXT:     %retval = alloca i32, align 4

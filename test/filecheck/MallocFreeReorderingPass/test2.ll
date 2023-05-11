@@ -1,3 +1,6 @@
+; Test for malloc and free in other basic block
+; Output: Should not reorder malloc and free
+
 define i32 @main() #0 {
 ; CHECK:      entry:
 ; CHECK-NEXT:     %0 = alloca i32, align 4
