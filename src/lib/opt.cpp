@@ -1,9 +1,12 @@
 #include "opt.h"
 #include "./opt/passes.h"
+#include "./opt/switch_to_br.h"
+#include "./opt/br_to_switch.h"
 
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 
+#include "opt/br_to_switch.h"
 #include "print_ir.h"
 
 using namespace std::string_literals;
@@ -27,11 +30,13 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add function-level opt passes below
     FPM.addPass(SimplePass());
+    FPM.addPass(SwitchBr::SwitchToBrPass());
     FPM.addPass(LoopBranch::LoopBranchConditionPass());
     FPM.addPass(AddSumPass());
     FPM.addPass(ShiftConstantAddPass());
     FPM.addPass(ToAload::LoadToAloadPass());
     FPM.addPass(LoadReorderingPass());
+    FPM.addPass(SwitchBr::BrToSwitchPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
