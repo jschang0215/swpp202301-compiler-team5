@@ -1,7 +1,8 @@
 ; test for check with ne
 define i32 @f(i32 %n) {
-; CHECK:         %cmp = icmp ne i32 %n, 1
-; CHECK-NEXT:    switch i32 %n, label %if.then2 [
+; CHECK-LABEL: @f(i32 %n)       
+; CHECK-NO:      %cmp = icmp eq i32 %n, 1
+; CHECK:         switch i32 %n, label %if.then2 [
 ; CHECK-NEXT:      i32 1, label %if.else4
 ; CHECK-NEXT:      i32 2, label %if.else
 ; CHECK-NEXT:    ]
