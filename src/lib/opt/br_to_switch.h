@@ -23,14 +23,14 @@ namespace SwitchBr {
 class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   using BlockSet = std::set<BasicBlock *>;
   struct BlockPair {
-    BasicBlock *BBm, *BBc;
-  }; // BB matched, BB condition
+    BasicBlock *dest, *cond;
+  };
   using BlockPairMap = std::map<ConstantInt *, BlockPair>;
 
   struct SwitchCaseInfo {
     Value *V;
     ConstantInt *C;
-    BasicBlock *BBc, *BBn;
+    BasicBlock *cond, *next;
   };
   struct CondInfo {
     Value *V;
@@ -41,12 +41,9 @@ class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   CondInfo getValueCond(ICmpInst *cond);
   SwitchCaseInfo getSwitchCase(BasicBlock *BB, Value *V);
 
-  BasicBlock *addBridgeBB(BasicBlock *BBc, BasicBlock *BBm,
-                          bool eraseBBc = true);
-  bool tryMergeBB(BasicBlock *BBb, BasicBlock *BBc, BasicBlock *BBm);
-  BasicBlock *makeDefaultCase(BasicBlock *BBb, BasicBlock *BBd,
-                              BasicBlock *BBc);
-  bool makeSwitch(BasicBlock *BBb, Value *V, BlockPair BBd, BlockPairMap &BBps);
+  BasicBlock *addBridgeBB(BasicBlock *cond, BasicBlock *dest);
+  BasicBlock* mergeBB(BasicBlock *base, BasicBlock *cond, BasicBlock *dest);
+  bool makeSwitch(BasicBlock *base, Value *V, BlockPair def, BlockPairMap &BBps);
   bool brToSwitch(BasicBlock *BB);
 
   BlockSet eraseBB;
