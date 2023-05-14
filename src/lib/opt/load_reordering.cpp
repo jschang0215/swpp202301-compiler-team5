@@ -37,7 +37,7 @@ bool LoadReorderingPass::moveInstruction(LoadInst *LI,
  * return: true if two values have same value
  */
 
-bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, LoadInst *L,
+bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
                                        Instruction *O) {
   int pointerLevel = 0;
   std::set<Value *> valueSet;
@@ -102,6 +102,8 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, LoadInst *L,
  * return: true if have dependency
  */
 bool LoadReorderingPass::isDependent(LoadInst *L, Instruction *O) {
+  if (auto *CI = dyn_cast<CallInst>(O))
+    return true;
   for (Use &U : O->operands()) {
     if (U.get() == L->getPointerOperand()) {
       return true;
@@ -154,14 +156,184 @@ bool LoadReorderingPass::iterateBack(LoadInst *LI) {
   }
 }
 
+/*
+ * check dependency between two instructions
+ * memory access instruction and call instruction : check always true
+ *
+ * @I1:    former instruction to check
+ * @I2:    latter instruction to check
+ * return: true if there is dependency
+ */
+
+bool LoadReorderingPass::dependencyCheck(Instruction *I1, Instruction *I2) {
+  // inside call, memory could be accessed
+  if (auto *C = dyn_cast<CallInst>(I2)) {
+    if (I1->mayReadOrWriteMemory()) {
+      return true;
+    }
+    if (auto *C1 = dyn_cast<CallInst>(I1)) {
+      return true;
+    }
+  }
+  if (auto *C = dyn_cast<CallInst>(I1)) {
+    if (I2->mayReadOrWriteMemory()) {
+      return true;
+    }
+  }
+  // check store instruction
+  if (auto *S = dyn_cast<StoreInst>(I2)) {
+    Value *p = S->getPointerOperand();
+    for (Use &Op : I1->operands()) {
+      if (Op.get() == p)
+        return true;
+      if (isSamePointer(Op.get(), p, I2, I1)) {
+        return true;
+      }
+    }
+  }
+  if (auto *S = dyn_cast<StoreInst>(I1)) {
+    Value *p = S->getPointerOperand();
+    for (Use &Op : I2->operands()) {
+      if (Op.get() == p)
+        return true;
+      if (isSamePointer(p, Op.get(), I2, I1)) {
+        return true;
+      }
+    }
+  }
+  // check dependency
+  for (Use &Op : I2->operands()) {
+    if (Op.get() == I1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+ * move use instruction of load backward
+ * move I to just before first dependent instruction of I
+ *
+ * @I:      instruction to move back
+ * return:  true if instruction moved
+ */
+bool LoadReorderingPass::moveBack(Instruction *I) {
+  // terminator, call instruction don't move
+  if (auto *CI = dyn_cast<CallInst>(I))
+    return false;
+  if (I->isTerminator())
+    return false;
+  BasicBlock *BB = I->getParent();
+  int count = 0;
+  BasicBlock::iterator it(I);
+  BasicBlock::iterator end = BB->end();
+  it++;
+  while (it != end) {
+    count++;
+    if (dependencyCheck(I, &*it)) {
+      I->moveBefore(&*it);
+      break;
+    }
+    if (it->isTerminator()) {
+      I->moveBefore(&*it);
+      break;
+    }
+    it++;
+  }
+  if (count > 1) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/*
+ * move instruction between load and use
+ *
+ * @I:     instruction that has no dependency with load and use
+ * @FI:    first use instruction of load
+ * return: true if instruction moved
+ */
+bool LoadReorderingPass::moveForward(Instruction *I, Instruction *FI) {
+  BasicBlock::iterator it(I);
+  BasicBlock::iterator begin = I->getParent()->begin();
+  --it;
+  while (it != begin) {
+    if (dependencyCheck(&*it, I))
+      return false;
+    if (&*it == FI) {
+      I->moveBefore(FI);
+      return true;
+    }
+    --it;
+  }
+  return true;
+}
+
 PreservedAnalyses LoadReorderingPass::run(Function &F,
                                           FunctionAnalysisManager &FAM) {
   bool changed = false;
   for (auto &BB : F) {
+    // load instruction reordering
     for (auto &I : BB) {
       if (auto *LI = dyn_cast<LoadInst>(&I)) {
         if (iterateBack(LI))
           changed = true;
+      }
+    }
+    // use instruction reordering
+    std::set<Instruction *> uses;
+    for (auto &I : BB) {
+      if (auto *LI = dyn_cast<LoadInst>(&I)) {
+        bool check = false;
+        // find use instructions and move back
+        BasicBlock::iterator it(LI);
+        BasicBlock::iterator end = BB.end();
+        ++it;
+        while (it != end) {
+          for (auto &op : it->operands()) {
+            if (op.get() == LI) {
+              check = true;
+            }
+          }
+          if (check) {
+            uses.insert(&*it);
+            check = false;
+          }
+          ++it;
+        }
+      }
+    }
+    // avoid dependecy betweene use instructions - reorder instructions in
+    // reverse order
+    for (auto u = uses.rbegin(); u != uses.rend(); ++u) {
+      if (moveBack(*u))
+        changed = true;
+    }
+    // other instruction reordering
+    for (auto &I : BB) {
+      if (auto *LI = dyn_cast<LoadInst>(&I)) {
+        bool check = false;
+        BasicBlock::iterator it(LI);
+        BasicBlock::iterator end = BB.end();
+        ++it;
+        Instruction *FI = NULL;
+        while (it != end) {
+          if (it->isTerminator())
+            break;
+          if (check && uses.count(&*it) == 0) {
+            if (moveForward(&*it, FI))
+              changed = true;
+          } else {
+            for (auto &op : it->operands()) {
+              if (op.get() == LI) {
+                check = true;
+                FI = &*it;
+              }
+            }
+          }
+          ++it;
+        }
       }
     }
   }
