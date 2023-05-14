@@ -7,6 +7,11 @@
 
 using namespace SwitchBr;
 
+/*
+ * replace one case switch to conditional branch
+ *  
+ * @inst:     target switch instruction
+ */
 void SwitchToBrPass::replaceWithCondBr(SwitchInst *inst) {
   BasicBlock *BBd = inst->getDefaultDest(),
              *BBv = inst->case_begin()->getCaseSuccessor();
@@ -18,12 +23,22 @@ void SwitchToBrPass::replaceWithCondBr(SwitchInst *inst) {
   eraseInst.insert(inst);
 }
 
+/*
+ * replace two case switch to conditional branch
+ *
+ * @inst:     target switch instruction
+ */
 void SwitchToBrPass::replaceWithUncondBr(SwitchInst *inst) {
   IRBuilder<> builder(inst);
   builder.CreateBr(inst->getDefaultDest());
   eraseInst.insert(inst);
 }
 
+/*
+ * replace few case switch to branch
+ *
+ * @inst:     target switch instruction
+ */
 bool SwitchToBrPass::switchToBr(SwitchInst *inst) {
   if (inst->getNumCases() == 0)
     replaceWithUncondBr(inst);
