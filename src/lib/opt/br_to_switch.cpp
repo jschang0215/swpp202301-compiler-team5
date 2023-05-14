@@ -75,13 +75,12 @@ BasicBlock* BrToSwitchPass::mergeBB(BasicBlock *base, BasicBlock *cond,
  */
 bool BrToSwitchPass::makeSwitch(BasicBlock *base, Value *V, BlockPair defP,
                                 BlockPairMap &BBPs) {
-  if (BBPs.size() < 1)
+  BranchInst *br = dyn_cast<BranchInst>(base->getTerminator());
+  if (BBPs.size() == 0 || (BBPs.size()==1 && loopBr.find(br) != loopBr.end()))
     return false;
 
-  BranchInst *br = dyn_cast<BranchInst>(base->getTerminator());
   Instruction * cond = dyn_cast<Instruction>(br->getCondition());
   IRBuilder<> builder(br);
-
   SwitchInst *S = builder.CreateSwitch(V, mergeBB(base, defP.cond, defP.dest));
 
   for (auto [OnVal, p] : BBPs) {
@@ -167,11 +166,21 @@ bool BrToSwitchPass::brToSwitch(BasicBlock *BB) {
   return makeSwitch(BB, baseV, {BBi, BBii}, BBPs);
 }
 
+void BrToSwitchPass::getLoopBr(Function &F, FunctionAnalysisManager &FAM){
+  loopBr.clear();
+  LoopBranch::LoopAnalysis a;
+  LoopBranch::Loops loops = a.run(F, FAM);
+  for(BasicBlock &BB : F)
+    for(auto [br, cond] : loops.getExitBranches(&BB))
+      loopBr.insert(br);
+}
+
 PreservedAnalyses BrToSwitchPass::run(Function &F,
                                       FunctionAnalysisManager &FAM) {
   bool changed = false;
   eraseBB.clear();
   this->F = &F;
+  getLoopBr(F, FAM);
   for (BasicBlock &BB : F)
     changed |= brToSwitch(&BB);
   for (BasicBlock *BB : eraseBB)

@@ -22,6 +22,7 @@ namespace SwitchBr {
 // optimize branch condition
 class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   using BlockSet = std::set<BasicBlock *>;
+  using BrSet = std::set<BranchInst *>;
   struct BlockPair {
     BasicBlock *dest, *cond;
   };
@@ -45,8 +46,10 @@ class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   BasicBlock* mergeBB(BasicBlock *base, BasicBlock *cond, BasicBlock *dest);
   bool makeSwitch(BasicBlock *base, Value *V, BlockPair def, BlockPairMap &BBps);
   bool brToSwitch(BasicBlock *BB);
+  void getLoopBr(Function &F, FunctionAnalysisManager &FAM);
 
   BlockSet eraseBB;
+  BrSet loopBr;
 
   Function *F;
 
