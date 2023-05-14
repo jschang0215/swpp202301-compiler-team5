@@ -9,6 +9,7 @@
 #include "./add_sum.h"
 #include "./load_to_aload.h"
 #include "./load_reordering.h"
+#include "./add_sccp.h"
 
 using namespace llvm;
 

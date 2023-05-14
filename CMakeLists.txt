@@ -128,6 +128,8 @@ add_opt_pass(LoadReorderingPass load_reordering.cpp)
 test_opt_pass(LoadReorderingPass 1)
 add_opt_pass(LoadToAloadPass load_to_aload.cpp)
 test_opt_pass(LoadToAloadPass 1)
+add_opt_pass(SccpPass add_sccp.cpp)
+test_opt_pass(SccpPass 1)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
