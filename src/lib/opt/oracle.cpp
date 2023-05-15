@@ -1,46 +1,24 @@
 #include "oracle.h"
 #include "loop_analysis.h"
 
-std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
-  // stable sort by in_loop then insts in descending order
-  std::stable_sort(clusters.begin(), clusters.end(),
-                   [](const Cluster &a, const Cluster &b) {
-                     if (a.in_loop == b.in_loop)
-                       return a.insts > b.insts;
-                     return a.in_loop > b.in_loop;
-                   });
+// #include <fstream>
+// std::ofstream ofs("/home/yoonshik/Desktop/school/swpp-project/swpp202301-compiler-team5/looplog.txt", std::ofstream::app);
 
-  std::vector<Cluster> ret;
-  // totalInstructions: the number of instructions in all clusters (<=48)
-  int totalInstructions = 0;
-  // iterate from the first element of clusters until the total number of
-  // instructions is less than or equal to 48
-  for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
-    totalInstructions += iter->insts;
-    ret.push_back(*iter);
-    if (totalInstructions > 48) {
-      ret.pop_back();
-      break;
-    }
-  }
-  return ret;
-}
-
-std::vector<Cluster> Cluster::getClusters(Module &M) {
+std::vector<Cluster> Cluster::getClusters(Module &M,
+                                          ModuleAnalysisManager &MAM) {
   std::vector<Cluster> clusters;
 
-  for (auto &F : M) {
-    // get function analysis manager
-    FunctionAnalysisManager FAM;
-    FAM.registerPass([&] { return LoopBranch::LoopAnalysis(); });
+  // get function analysis manager
+  FunctionAnalysisManager &FAM =
+      MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
 
+  for (auto &F : M) {
     // get loop analysis
-    auto &loops = FAM.getResult<LoopBranch::LoopAnalysis>(F);
+    LoopBranch::Loops loops;
+    loops.recalculate(F, FAM);
 
     for (auto &BB : F) {
-      Cluster *C = new Cluster();
-      // in_loop is the number of loops that the current cluster is in
-      C->in_loop = loops.containigLoop(&BB).size();
+      Cluster *C = new Cluster(loops.containigLoop(&BB).size());
 
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
@@ -60,7 +38,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M) {
           if (C->stores.size() >= 7) {
             clusters.push_back(*C);
             delete C;
-            C = new Cluster();
+            C = new Cluster(loops.containigLoop(&BB).size());
           }
         } else {
           // the instruction is not store (end of the current cluster)
@@ -68,7 +46,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M) {
           if (C->stores.size() >= 3)
             clusters.push_back(*C);
           delete C;
-          C = new Cluster();
+          C = new Cluster(loops.containigLoop(&BB).size());
         }
       }
       // at the end of the basic block, if the current cluster has at least 3
@@ -80,6 +58,31 @@ std::vector<Cluster> Cluster::getClusters(Module &M) {
   }
 
   return clusters;
+}
+
+std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
+  std::stable_sort(clusters.begin(), clusters.end(),
+                   [](const Cluster &a, const Cluster &b) {
+                     if (a.in_loop == b.in_loop)
+                       return (a.stores.size() - 2) * b.insts >
+                              (b.stores.size() - 2) * a.insts;
+                     return a.in_loop > b.in_loop;
+                   });
+
+  std::vector<Cluster> ret;
+  // totalInstructions: the number of instructions in all clusters (<=48)
+  int totalInstructions = 0;
+  // iterate from the first element of clusters until the total number of
+  // instructions is less than or equal to 48
+  for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
+    totalInstructions += iter->insts;
+    ret.push_back(*iter);
+    if (totalInstructions > 48) {
+      ret.pop_back();
+      break;
+    }
+  }
+  return ret;
 }
 
 Function *makeOracle(Module &M, LLVMContext &CTX) {
@@ -176,17 +179,17 @@ void replaceStoreWithOracle(std::vector<Cluster> &clusters, LLVMContext &CTX,
 }
 
 PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
+  auto clusters = Cluster::getClusters(M, MAM);
+  // if there are no clusters, return
+  if (clusters.empty())
+    return PreservedAnalyses::all();
+    
+  clusters = Cluster::processClusters(clusters);
+
   for (auto &F : M) {
     if (F.getName() == "oracle")
       F.setName("not_oracle");
   }
-
-  auto clusters = Cluster::getClusters(M);
-  clusters = Cluster::processClusters(clusters);
-
-  // if there are no clusters, return
-  if (clusters.empty())
-    return PreservedAnalyses::all();
 
   auto &CTX = M.getContext();
 

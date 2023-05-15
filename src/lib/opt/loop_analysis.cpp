@@ -66,7 +66,7 @@ void LoopBranch::Loops::recalculate(Function &F, FunctionAnalysisManager &FAM) {
 }
 
 /*
- * Find loop containing given basic block
+ * Find loop starting with given basic block
  *
  * @BBh     header block
  * @return  set of basic block in loop
@@ -78,7 +78,7 @@ set<BasicBlock *> LoopBranch::Loops::getLoop(BasicBlock *BBh) {
 }
 
 /*
- * Find loop containing given basic block
+ * Find loops containing given basic block
  *
  * @BB      target basic block
  * @return  set of loop containing given basic block

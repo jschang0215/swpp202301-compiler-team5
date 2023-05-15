@@ -21,8 +21,9 @@ public:
   int insts;
   int in_loop;
   Cluster() { insts = 1; in_loop = 0; }
+  Cluster(int in_loop): in_loop(in_loop) { insts = 1; }
   static std::vector<Cluster> processClusters(std::vector<Cluster> clusters);
-  static std::vector<Cluster> getClusters(Module &M);
+  static std::vector<Cluster> getClusters(Module &M, ModuleAnalysisManager &MAM);
 };
 
 class OraclePass : public PassInfoMixin<OraclePass> {
