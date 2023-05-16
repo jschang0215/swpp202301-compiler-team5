@@ -1,9 +1,6 @@
 #include "oracle.h"
 #include "loop_analysis.h"
 
-// #include <fstream>
-// std::ofstream ofs("/home/yoonshik/Desktop/school/swpp-project/swpp202301-compiler-team5/looplog.txt", std::ofstream::app);
-
 std::vector<Cluster> Cluster::getClusters(Module &M,
                                           ModuleAnalysisManager &MAM) {
   std::vector<Cluster> clusters;
@@ -183,7 +180,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   // if there are no clusters, return
   if (clusters.empty())
     return PreservedAnalyses::all();
-    
+
   clusters = Cluster::processClusters(clusters);
 
   for (auto &F : M) {
