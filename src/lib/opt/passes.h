@@ -13,7 +13,6 @@
 
 using namespace llvm;
 
-/*
 class SimplePass : public PassInfoMixin<SimplePass> {
 public:
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
@@ -32,4 +31,3 @@ class OraclePass : public PassInfoMixin<OraclePass> {
 public:
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
-*/
