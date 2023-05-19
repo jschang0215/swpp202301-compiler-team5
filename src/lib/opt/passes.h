@@ -9,10 +9,7 @@
 #include "./add_sum.h"
 #include "./load_to_aload.h"
 #include "./load_reordering.h"
-#include "./add_sccp.h"
-#include "./switch_to_br.h"
-#include "./br_to_switch.h"
-#include "./recursive_branch_condition.h"
+#include "./malloc_free_reordering.h"
 
 using namespace llvm;
 
