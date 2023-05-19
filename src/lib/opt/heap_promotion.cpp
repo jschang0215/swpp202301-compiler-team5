@@ -99,8 +99,6 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     }
   }
 
-  outs() << "Function: " << F.getName() << "\n";
-
   for (CallInst *MallocCall : mallocCalls) {
     // Check if the malloc argument is a constant
     Value *MallocArg = MallocCall->getArgOperand(0);
@@ -146,11 +144,6 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     // Skip if used as return value
     if (usedAsReturn)
       continue;
-
-    outs() << "Found: " << *MallocCall << "\n";
-    for (Value *Var : relatedVar) {
-      outs() << "   Related: " << *Var << "\n";
-    }
 
     /*
     Change to alloca
