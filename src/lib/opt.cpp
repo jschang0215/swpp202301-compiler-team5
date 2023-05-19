@@ -33,6 +33,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(ShiftConstantAddPass());
     FPM.addPass(ToAload::LoadToAloadPass());
     FPM.addPass(LoadReorderingPass());
+    FPM.addPass(SccpPass());
     FPM.addPass(LoopBranch::RecursiveBranchConditionPass());
     FPM.addPass(SwitchBr::BrToSwitchPass());
 
