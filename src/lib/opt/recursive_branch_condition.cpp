@@ -19,12 +19,11 @@ using namespace llvm;
  * @return   whether block contains recursion
  */
 bool RecursiveBranchConditionPass::isRecursionBlock(BasicBlock &BB) {
-  Function *F = BB.getParent();
   for (Instruction &I : BB) {
     CallInst *call = dyn_cast<CallInst>(&I);
     if (!call)
       continue;
-    if (F == call->getCalledFunction())
+    if (BB.getParent() == call->getCalledFunction())
       return true;
   }
   return false;
@@ -32,14 +31,14 @@ bool RecursiveBranchConditionPass::isRecursionBlock(BasicBlock &BB) {
 
 /*
  * Check given branch condition can be inverted
+ * condition is compatre instruction and only used once
  *
  * @cond     branch condition
  * @return   whether condition can be inverted
  */
 bool RecursiveBranchConditionPass::checkInvertCondition(Value *cond) {
   CmpInst *cmp = dyn_cast<CmpInst>(cond);
-  return cmp &&
-         cmp->getNumUses() == 1; // Compare instruction and only used once
+  return cmp && cmp->getNumUses() == 1;
 }
 
 /*
@@ -144,10 +143,9 @@ bool RecursiveBranchConditionPass::isMoreRecursive(BasicBlock *BBt,
  */
 void RecursiveBranchConditionPass::recalculateRecursionBlocks(Function &F) {
   recursionBlocks.clear();
-  for (BasicBlock &BB : F) {
+  for (BasicBlock &BB : F)
     if (isRecursionBlock(BB))
       recursionBlocks.insert(&BB);
-  }
 }
 
 /*
