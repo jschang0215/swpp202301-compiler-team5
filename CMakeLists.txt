@@ -133,6 +133,8 @@ test_opt_pass(SwitchToBrPass 1)
 add_opt_pass(BrToSwitchPass br_to_switch.cpp)
 target_link_libraries(BrToSwitchPass PUBLIC LoopsPrinterPass)
 test_opt_pass(BrToSwitchPass 1)
+add_opt_pass(RecursiveBranchConditionPass recursive_branch_condition.cpp)
+test_opt_pass(RecursiveBranchConditionPass 1)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
