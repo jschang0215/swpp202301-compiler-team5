@@ -10,6 +10,7 @@
 #include "./load_to_aload.h"
 #include "./load_reordering.h"
 #include "./heap_promotion.h"
+#include "./malloc_free_reordering.h"
 
 using namespace llvm;
 
