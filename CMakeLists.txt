@@ -130,6 +130,13 @@ add_opt_pass(LoadToAloadPass load_to_aload.cpp)
 test_opt_pass(LoadToAloadPass 1)
 add_opt_pass(SccpPass add_sccp.cpp)
 test_opt_pass(SccpPass 1)
+add_opt_pass(SwitchToBrPass switch_to_br.cpp)
+test_opt_pass(SwitchToBrPass 1)
+add_opt_pass(BrToSwitchPass br_to_switch.cpp)
+target_link_libraries(BrToSwitchPass PUBLIC LoopsPrinterPass)
+test_opt_pass(BrToSwitchPass 1)
+add_opt_pass(RecursiveBranchConditionPass recursive_branch_condition.cpp)
+test_opt_pass(RecursiveBranchConditionPass 1)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
