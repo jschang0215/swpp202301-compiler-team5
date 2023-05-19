@@ -1,5 +1,4 @@
 #include "switch_to_br.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassPlugin.h"
@@ -9,7 +8,7 @@ using namespace SwitchBr;
 
 /*
  * replace one case switch to conditional branch
- *  
+ *
  * @inst:     target switch instruction
  */
 void SwitchToBrPass::replaceWithCondBr(SwitchInst *inst) {

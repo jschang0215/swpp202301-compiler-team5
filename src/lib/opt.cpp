@@ -1,12 +1,9 @@
 #include "opt.h"
 #include "./opt/passes.h"
-#include "./opt/switch_to_br.h"
-#include "./opt/br_to_switch.h"
 
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 
-#include "opt/br_to_switch.h"
 #include "print_ir.h"
 
 using namespace std::string_literals;

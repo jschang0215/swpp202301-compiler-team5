@@ -43,8 +43,9 @@ class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   SwitchCaseInfo getSwitchCase(BasicBlock *BB, Value *V);
 
   BasicBlock *addBridgeBB(BasicBlock *cond, BasicBlock *dest);
-  BasicBlock* mergeBB(BasicBlock *base, BasicBlock *cond, BasicBlock *dest);
-  bool makeSwitch(BasicBlock *base, Value *V, BlockPair def, BlockPairMap &BBps);
+  BasicBlock *mergeBB(BasicBlock *base, BasicBlock *cond, BasicBlock *dest);
+  bool makeSwitch(BasicBlock *base, Value *V, BlockPair def,
+                  BlockPairMap &BBps);
   bool brToSwitch(BasicBlock *BB);
   void getLoopBr(Function &F, FunctionAnalysisManager &FAM);
 
