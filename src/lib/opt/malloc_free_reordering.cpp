@@ -53,6 +53,11 @@ static void collectrelatedInst(Function &F, std::vector<Value *> &relatedVars,
   }
 }
 
+/*
+ * Get free instruction from found related instructions
+ *
+ * @relatedInsts:  Related nstruction to be searched on
+ */
 static CallInst *getfreeInst(std::vector<Instruction *> &relatedInsts) {
   CallInst *freeInst = nullptr;
 
@@ -135,6 +140,9 @@ static void collectfreeGroup(Value *V, std::vector<Instruction *> &relatedInsts,
 
 /*
  * Find first use after mallocGroup.
+ *
+ * @relatedInsts:   related instructions
+ * @mallocGroups:   malloc groups to get last use in malloc group
  */
 static Instruction *findFirstUse(std::vector<Instruction *> &relatedInsts,
                                  std::vector<Instruction *> &mallocGroups) {
@@ -150,6 +158,9 @@ static Instruction *findFirstUse(std::vector<Instruction *> &relatedInsts,
 
 /*
  * Find last use before freeGroups.
+ *
+ * @relatedInsts:   related instructions
+ * @freeGroups:     free groups to get first use in free group
  */
 static Instruction *findLastUse(std::vector<Instruction *> &relatedInsts,
                                 std::vector<Instruction *> &freeGroups) {
