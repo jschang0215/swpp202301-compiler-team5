@@ -1,4 +1,5 @@
 #include "load_reordering.h"
+#include "llvm/IR/Instruction.h"
 
 /*
  *  move load to front of block
@@ -157,6 +158,59 @@ bool LoadReorderingPass::iterateBack(LoadInst *LI) {
 }
 
 /*
+ * if one of instructions is call, and other is memory accessing instruction,
+ * return true
+ * 
+ * @I1:    former instruction to check
+ * @I2:    latter instruction to check
+ * return: true if there is depedency
+ */
+
+bool LoadReorderingPass::callCheck(Instruction *I1, Instruction *I2){
+  if (auto *C = dyn_cast<CallInst>(I2)) {
+    if (I1->mayReadOrWriteMemory())
+      return true;
+    if (auto *C1 = dyn_cast<CallInst>(I1))
+      return true;
+  }
+  if (auto *C = dyn_cast<CallInst>(I1)) {
+    if (I2->mayReadOrWriteMemory())
+      return true;
+  }
+  return false;
+}
+
+/*
+ * if one of instructions is store, check pointer
+ * 
+ * @I1:    former instruction to check
+ * @I2:    latter instruction to check
+ * return: true if there is depedency
+ */
+
+bool LoadReorderingPass::storeCheck(Instruction *I1, Instruction *I2){
+  if (auto *S = dyn_cast<StoreInst>(I2)) {
+    Value *p = S->getPointerOperand();
+    for (Use &Op : I1->operands()) {
+      if (Op.get() == p)
+        return true;
+      if (isSamePointer(Op.get(), p, I2, I1))
+        return true;
+    }
+  }
+  if (auto *S = dyn_cast<StoreInst>(I1)) {
+    Value *p = S->getPointerOperand();
+    for (Use &Op : I2->operands()) {
+      if (Op.get() == p)
+        return true;
+      if (isSamePointer(p, Op.get(), I2, I1))
+        return true;
+    }
+  }
+  return false;
+}
+
+/*
  * check dependency between two instructions
  * memory access instruction and call instruction : check always true
  *
@@ -167,45 +221,15 @@ bool LoadReorderingPass::iterateBack(LoadInst *LI) {
 
 bool LoadReorderingPass::dependencyCheck(Instruction *I1, Instruction *I2) {
   // inside call, memory could be accessed
-  if (auto *C = dyn_cast<CallInst>(I2)) {
-    if (I1->mayReadOrWriteMemory()) {
-      return true;
-    }
-    if (auto *C1 = dyn_cast<CallInst>(I1)) {
-      return true;
-    }
-  }
-  if (auto *C = dyn_cast<CallInst>(I1)) {
-    if (I2->mayReadOrWriteMemory()) {
-      return true;
-    }
-  }
+  if(callCheck(I1, I2)) return true;
+  
   // check store instruction
-  if (auto *S = dyn_cast<StoreInst>(I2)) {
-    Value *p = S->getPointerOperand();
-    for (Use &Op : I1->operands()) {
-      if (Op.get() == p)
-        return true;
-      if (isSamePointer(Op.get(), p, I2, I1)) {
-        return true;
-      }
-    }
-  }
-  if (auto *S = dyn_cast<StoreInst>(I1)) {
-    Value *p = S->getPointerOperand();
-    for (Use &Op : I2->operands()) {
-      if (Op.get() == p)
-        return true;
-      if (isSamePointer(p, Op.get(), I2, I1)) {
-        return true;
-      }
-    }
-  }
+  if(storeCheck(I1, I2)) return true;
+  
   // check dependency
   for (Use &Op : I2->operands()) {
-    if (Op.get() == I1) {
+    if (Op.get() == I1)
       return true;
-    }
   }
   return false;
 }
@@ -223,11 +247,13 @@ bool LoadReorderingPass::moveBack(Instruction *I) {
     return false;
   if (I->isTerminator())
     return false;
+  
   BasicBlock *BB = I->getParent();
   int count = 0;
   BasicBlock::iterator it(I);
   BasicBlock::iterator end = BB->end();
   it++;
+
   while (it != end) {
     count++;
     if (dependencyCheck(I, &*it)) {
@@ -240,11 +266,7 @@ bool LoadReorderingPass::moveBack(Instruction *I) {
     }
     it++;
   }
-  if (count > 1) {
-    return true;
-  } else {
-    return false;
-  }
+  return count > 1;
 }
 
 /*
@@ -292,9 +314,8 @@ PreservedAnalyses LoadReorderingPass::run(Function &F,
         ++it;
         while (it != end) {
           for (auto &op : it->operands()) {
-            if (op.get() == LI) {
+            if (op.get() == LI) 
               check = true;
-            }
           }
           if (check) {
             uses.insert(&*it);

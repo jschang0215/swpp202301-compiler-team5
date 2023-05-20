@@ -23,6 +23,8 @@ private:
   bool moveInstruction(LoadInst *LI, Instruction *LastDepInst);
   bool moveBack(Instruction *I);
   bool moveForward(Instruction *I, Instruction *FI);
+  bool callCheck(Instruction *I1, Instruction *I2);
+  bool storeCheck(Instruction *I1, Instruction *I2);
   bool dependencyCheck(Instruction *I1, Instruction *I2);
 };
 
