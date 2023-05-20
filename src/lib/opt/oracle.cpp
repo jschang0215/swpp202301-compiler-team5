@@ -1,21 +1,29 @@
 #include "oracle.h"
-#include "loop_analysis.h"
 
 std::vector<Cluster> Cluster::getClusters(Module &M,
                                           ModuleAnalysisManager &MAM) {
   std::vector<Cluster> clusters;
 
-  // get function analysis manager
-  FunctionAnalysisManager &FAM =
-      MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
-
   for (auto &F : M) {
+    // if function is declaration and not definition, skip
+    if (F.isDeclaration() || F.isIntrinsic())
+      continue;
+
     // get loop analysis
-    LoopBranch::Loops loops;
-    loops.recalculate(F, FAM);
+    DominatorTree DT;
+    DT.recalculate(F);
+    auto loopInfo = new LoopInfoBase<BasicBlock, Loop>();
+    loopInfo->releaseMemory();
+    loopInfo->analyze(DT);
 
     for (auto &BB : F) {
-      Cluster *C = new Cluster(loops.containigLoop(&BB).size());
+      int in_loop = 0;
+      for (auto l : *loopInfo) {
+        if (l->contains(&BB))
+          in_loop++;
+      }
+
+      Cluster *C = new Cluster(in_loop);
 
       for (auto &I : BB) {
         // if the instruction is a store instruction, add it to the current
@@ -35,15 +43,17 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
           if (C->stores.size() >= 7) {
             clusters.push_back(*C);
             delete C;
-            C = new Cluster(loops.containigLoop(&BB).size());
+            C = new Cluster(in_loop);
           }
         } else {
           // the instruction is not store (end of the current cluster)
           // if the current cluster has at least 3 instructions, add to clusters
           if (C->stores.size() >= 3)
             clusters.push_back(*C);
-          delete C;
-          C = new Cluster(loops.containigLoop(&BB).size());
+          if (!C->stores.empty()) {
+            delete C;
+            C = new Cluster(in_loop);
+          }
         }
       }
       // at the end of the basic block, if the current cluster has at least 3
@@ -52,6 +62,8 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
         clusters.push_back(*C);
       delete C;
     }
+
+    delete loopInfo;
   }
 
   return clusters;
