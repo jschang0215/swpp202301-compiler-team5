@@ -1,5 +1,4 @@
 #include "load_reordering.h"
-#include "llvm/IR/Instruction.h"
 
 /*
  *  move load to front of block
@@ -160,13 +159,13 @@ bool LoadReorderingPass::iterateBack(LoadInst *LI) {
 /*
  * if one of instructions is call, and other is memory accessing instruction,
  * return true
- * 
+ *
  * @I1:    former instruction to check
  * @I2:    latter instruction to check
  * return: true if there is depedency
  */
 
-bool LoadReorderingPass::callCheck(Instruction *I1, Instruction *I2){
+bool LoadReorderingPass::callCheck(Instruction *I1, Instruction *I2) {
   if (auto *C = dyn_cast<CallInst>(I2)) {
     if (I1->mayReadOrWriteMemory())
       return true;
@@ -182,13 +181,13 @@ bool LoadReorderingPass::callCheck(Instruction *I1, Instruction *I2){
 
 /*
  * if one of instructions is store, check pointer
- * 
+ *
  * @I1:    former instruction to check
  * @I2:    latter instruction to check
  * return: true if there is depedency
  */
 
-bool LoadReorderingPass::storeCheck(Instruction *I1, Instruction *I2){
+bool LoadReorderingPass::storeCheck(Instruction *I1, Instruction *I2) {
   if (auto *S = dyn_cast<StoreInst>(I2)) {
     Value *p = S->getPointerOperand();
     for (Use &Op : I1->operands()) {
@@ -221,11 +220,13 @@ bool LoadReorderingPass::storeCheck(Instruction *I1, Instruction *I2){
 
 bool LoadReorderingPass::dependencyCheck(Instruction *I1, Instruction *I2) {
   // inside call, memory could be accessed
-  if(callCheck(I1, I2)) return true;
-  
+  if (callCheck(I1, I2))
+    return true;
+
   // check store instruction
-  if(storeCheck(I1, I2)) return true;
-  
+  if (storeCheck(I1, I2))
+    return true;
+
   // check dependency
   for (Use &Op : I2->operands()) {
     if (Op.get() == I1)
@@ -247,7 +248,7 @@ bool LoadReorderingPass::moveBack(Instruction *I) {
     return false;
   if (I->isTerminator())
     return false;
-  
+
   BasicBlock *BB = I->getParent();
   int count = 0;
   BasicBlock::iterator it(I);
@@ -314,7 +315,7 @@ PreservedAnalyses LoadReorderingPass::run(Function &F,
         ++it;
         while (it != end) {
           for (auto &op : it->operands()) {
-            if (op.get() == LI) 
+            if (op.get() == LI)
               check = true;
           }
           if (check) {
