@@ -103,6 +103,8 @@ bool ToAload::LoadToAloadPass::calcCost(LoadInst *LI) {
  */
 void ToAload::LoadToAloadPass::loadChange(LoadInst *LI, IRBuilder<> &builder) {
   Value *ptr = LI->getPointerOperand();
+  if (LI->getType()->isPointerTy())
+    return;
   std::string funcName = "aload_" + getTypeAsString(LI);
   FunctionCallee func = LI->getFunction()->getParent()->getOrInsertFunction(
       funcName, LI->getType(), ptr->getType());
