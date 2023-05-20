@@ -30,9 +30,11 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(LoopBranch::LoopBranchConditionPass());
     FPM.addPass(AddSumPass());
     FPM.addPass(ShiftConstantAddPass());
+    FPM.addPass(HeapPromotionPass());
+    FPM.addPass(MallocFreeReorderingPass());
     FPM.addPass(LoadReorderingPass());
     FPM.addPass(ToAload::LoadToAloadPass());
-
+    
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
