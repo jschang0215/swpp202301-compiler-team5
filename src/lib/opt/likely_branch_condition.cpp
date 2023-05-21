@@ -47,8 +47,6 @@ bool LikelyBranchConditionPass::optimizeCondition(BasicBlock *BB) {
   BranchInst *br = dyn_cast<BranchInst>(BB->getTerminator());
   BrLikely info = brInfo.getBrLikely(br);
 
-  outs() << ((info.first)?info.first->getName():"null") << " " << info.second << "\n";
-
   if (!br || !info.first || !info.second)
     return false;
   swapBrSuccessors(br);
