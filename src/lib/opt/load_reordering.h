@@ -8,6 +8,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include <set>
 
 using namespace llvm;
 
@@ -18,8 +19,13 @@ public:
 private:
   bool iterateBack(LoadInst *LI);
   bool isDependent(LoadInst *L, Instruction *O);
-  bool isSamePointer(Value *V1, Value *V2, LoadInst *L, Instruction *O);
+  bool isSamePointer(Value *V1, Value *V2, Instruction *L, Instruction *O);
   bool moveInstruction(LoadInst *LI, Instruction *LastDepInst);
+  bool moveBack(Instruction *I);
+  bool moveForward(Instruction *I, Instruction *FI);
+  bool callCheck(Instruction *I1, Instruction *I2);
+  bool storeCheck(Instruction *I1, Instruction *I2);
+  bool dependencyCheck(Instruction *I1, Instruction *I2);
 };
 
 #endif
