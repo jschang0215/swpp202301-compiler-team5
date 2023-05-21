@@ -142,7 +142,7 @@ void BrLikelyInfo::findLoopLikely(Function &F, FunctionAnalysisManager &FAM) {
   for (BasicBlock &BB : F)
     for (auto [br, EQ] : loop.getExitBranches(&BB)) {
       Value *cond = br->getCondition();
-      brSet.insert({br, !EQ});
+      brSet.insert({br, EQ});
     }
 }
 
