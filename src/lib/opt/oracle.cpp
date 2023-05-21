@@ -1,5 +1,13 @@
 #include "oracle.h"
 
+/*
+ * Get all the clusters of store instructions in a module
+ * 
+ * @M:    module to be looked at
+ * @MAM:  module analysis manager
+ * 
+ * @return vector of Cluster objects
+ */
 std::vector<Cluster> Cluster::getClusters(Module &M,
                                           ModuleAnalysisManager &MAM) {
   std::vector<Cluster> clusters;
@@ -26,8 +34,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
       Cluster *C = new Cluster(in_loop);
 
       for (auto &I : BB) {
-        // if the instruction is a store instruction, add it to the current
-        // cluster
+        // if the instruction is store, add it to the current cluster
         if (auto *SI = dyn_cast<StoreInst>(&I)) {
           C->stores.push_back(SI);
 
@@ -38,16 +45,16 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
               Type::getInt64PtrTy(M.getContext()))
             C->insts++;
 
-          // if the current cluster has 7 insts, add it to clusters and clear
-          // current cluster because oracle can only have up to 16 args
+          /* if the current cluster has 7 insts, add it to clusters and clear
+           current cluster because oracle can only have up to 16 args */
           if (C->stores.size() >= 7) {
             clusters.push_back(*C);
             delete C;
             C = new Cluster(in_loop);
           }
         } else {
-          // the instruction is not store (end of the current cluster)
-          // if the current cluster has at least 3 instructions, add to clusters
+          /* the instruction is not store (end of the current cluster)
+           if the current cluster has at least 3 instructions, add to clusters */
           if (C->stores.size() >= 3)
             clusters.push_back(*C);
           if (!C->stores.empty()) {
@@ -56,8 +63,8 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
           }
         }
       }
-      // at the end of the basic block, if the current cluster has at least 3
-      // instructions, add it to the clusters
+      /* at the end of the basic block, if the current cluster has at least 3
+       instructions, add it to the clusters */
       if (C->stores.size() >= 3)
         clusters.push_back(*C);
       delete C;
@@ -69,6 +76,13 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
   return clusters;
 }
 
+/*
+ * Sort the clusters by priority, and cut off at 48 llvm instructions
+ * 
+ * @clusters:   vector of clusters to be processed
+ *
+ * @return processed vector of Cluster objects
+ */
 std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
   std::stable_sort(clusters.begin(), clusters.end(),
                    [](const Cluster &a, const Cluster &b) {
@@ -81,8 +95,8 @@ std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
   std::vector<Cluster> ret;
   // totalInstructions: the number of instructions in all clusters (<=48)
   int totalInstructions = 0;
-  // iterate from the first element of clusters until the total number of
-  // instructions is less than or equal to 48
+  /* iterate from the first element of clusters until the total number of
+   instructions is less than or equal to 48 */
   for (auto iter = clusters.begin(); iter != clusters.end(); iter++) {
     totalInstructions += iter->insts;
     ret.push_back(*iter);
@@ -94,6 +108,14 @@ std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
   return ret;
 }
 
+/*
+ * Create a new oracle function
+ * 
+ * @M:    module to be looked at
+ * @CTX:  context of the module
+ * 
+ * @return a pointer to the new oracle function
+ */
 Function *makeOracle(Module &M, LLVMContext &CTX) {
   std::vector<Type *> params;
   // the first argument is the cluster number
@@ -110,6 +132,13 @@ Function *makeOracle(Module &M, LLVMContext &CTX) {
   return NewF;
 }
 
+/*
+ * Fill in the oracle function with the switch statement and new basic blocks
+ * 
+ * @NewF:     pointer to the new oracle function
+ * @clusters: vector of clusters
+ * @CTX:      context of the module
+ */
 void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
                   LLVMContext &CTX) {
   auto *NewBB = BasicBlock::Create(CTX, "entry", NewF);
@@ -155,6 +184,13 @@ void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
   }
 }
 
+/*
+ * Replace the original store instructions with oracle calls
+ * 
+ * @clusters: vector of clusters
+ * @CTX:      context of the module
+ * @NewF:     pointer to the new oracle function
+ */
 void replaceStoreWithOracle(std::vector<Cluster> &clusters, LLVMContext &CTX,
                             Function *NewF) {
   for (int i = 0; i < clusters.size(); i++) {

@@ -19,6 +19,9 @@
 
 using namespace llvm;
 
+/*
+ * A class storing clusters of store instructions.
+ */
 class Cluster {
 public:
   std::vector<StoreInst *> stores;
