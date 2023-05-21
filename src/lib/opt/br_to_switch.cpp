@@ -67,7 +67,7 @@ BasicBlock *BrToSwitchPass::mergeBB(BasicBlock *base, BasicBlock *cond,
 bool BrToSwitchPass::makeSwitch(BasicBlock *base, Value *V, BlockPair defP,
                                 BlockPairMap &BBPs) {
   BranchInst *br = dyn_cast<BranchInst>(base->getTerminator());
-  if (BBPs.size() == 0 || (BBPs.size() == 1 && loopBr.find(br) != loopBr.end()))
+  if (BBPs.size() == 0)
     return false;
 
   Instruction *cond = dyn_cast<Instruction>(br->getCondition());
@@ -119,10 +119,16 @@ BrToSwitchPass::SwitchCaseInfo BrToSwitchPass::getSwitchCase(BasicBlock *BB,
                                                              Value *baseV) {
   BranchInst *br = dyn_cast<BranchInst>(BB->getTerminator());
 
+  if (!br)
+    outs() << brLikely.getBrLikely(br).first << " "
+           << brLikely.getBrLikely(br).second << "\n";
+
   // not added to other switch blocks, conditional br
   // if not base, it must contain 2 line and unique predecessor
+  // and it is not likely branch
   if ((eraseBB.find(BB) != eraseBB.end()) || !br || br->isUnconditional() ||
-      (baseV && (BB->size() != 2 || !BB->getUniquePredecessor())))
+      (baseV && (BB->size() != 2 || !BB->getUniquePredecessor())) ||
+      (brLikely.getBrLikely(br).first != nullptr))
     return {nullptr, nullptr, nullptr, nullptr};
 
   ICmpInst *cmp = dyn_cast<ICmpInst>(br->getCondition());
@@ -158,27 +164,13 @@ bool BrToSwitchPass::brToSwitch(BasicBlock *BB) {
   return makeSwitch(BB, baseV, {BBi, BBii}, BBPs);
 }
 
-/*
- * get all exit branch in loop
- *
- * @F:        target function
- * @FAM:      function analysis manager
- */
-void BrToSwitchPass::getLoopBr(Function &F, FunctionAnalysisManager &FAM) {
-  loopBr.clear();
-  LoopBranch::LoopAnalysis a;
-  LoopBranch::Loops loops = a.run(F, FAM);
-  for (BasicBlock &BB : F)
-    for (auto [br, cond] : loops.getExitBranches(&BB))
-      loopBr.insert(br);
-}
-
 PreservedAnalyses BrToSwitchPass::run(Function &F,
                                       FunctionAnalysisManager &FAM) {
   bool changed = false;
   eraseBB.clear();
   this->F = &F;
-  getLoopBr(F, FAM);
+  brLikely.recalculate(F, FAM);
+
   for (BasicBlock &BB : F)
     changed |= brToSwitch(&BB);
   for (BasicBlock *BB : eraseBB)
