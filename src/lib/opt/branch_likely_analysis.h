@@ -18,7 +18,7 @@
 using namespace llvm;
 
 namespace BranchLikely {
-using BrLikely = std::pair<BranchInst*, bool>;
+using BrLikely = std::pair<BranchInst *, bool>;
 using BrSet = std::set<BrLikely>;
 using BlockSet = std::set<BasicBlock *>;
 
@@ -35,6 +35,7 @@ class RecursiveBrInfo {
   BlockSet recursionBlocks;
   DominatorTree *DT;
   BrSet brSet;
+
 public:
   BrSet getBrSet();
   void recalculate(Function &F, FunctionAnalysisManager &FAM);
@@ -44,22 +45,25 @@ class BrLikelyInfo {
   void findRecursiveLikely(Function &F, FunctionAnalysisManager &FAM);
   void findLoopLikely(Function &F, FunctionAnalysisManager &FAM);
   BrSet brSet;
+
 public:
   BrLikelyInfo() = default;
-  explicit BrLikelyInfo(Function &F, FunctionAnalysisManager &FAM){
+  explicit BrLikelyInfo(Function &F, FunctionAnalysisManager &FAM) {
     recalculate(F, FAM);
   }
   void recalculate(Function &F, FunctionAnalysisManager &FAM);
+  BrLikely getBrLikely(BranchInst *br);
   void print(raw_ostream &OS);
 };
 
 class BrLikelyPrinterPass : public PassInfoMixin<BrLikelyPrinterPass> {
   raw_ostream &OS;
+
 public:
   explicit BrLikelyPrinterPass(raw_ostream &OS);
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
 };
 
-} // namespace LoopBranch
+} // namespace BranchLikely
 
 #endif

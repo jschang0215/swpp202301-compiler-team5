@@ -46,8 +46,7 @@ void RecursiveBrInfo::recalculateRecursionBlocks(Function &F) {
  * @return   number of recursion and reachable
  */
 RecursiveBrInfo::RecursiveInfo
-RecursiveBrInfo::getRecursiveCnt(BasicBlock *BB1,
-                                              BasicBlock *BB2) {
+RecursiveBrInfo::getRecursiveCnt(BasicBlock *BB1, BasicBlock *BB2) {
   SmallVector<BasicBlock *> dom;
   DT->getDescendants(BB1, dom);
   int cnt = 0;
@@ -68,8 +67,7 @@ RecursiveBrInfo::getRecursiveCnt(BasicBlock *BB1,
  * @BBf      false successors of branch
  * @return   BBt is more recursive than BBf
  */
-bool RecursiveBrInfo::isMoreRecursive(BasicBlock *BBt,
-                                                   BasicBlock *BBf) {
+bool RecursiveBrInfo::isMoreRecursive(BasicBlock *BBt, BasicBlock *BBf) {
   RecursiveInfo i1 = getRecursiveCnt(BBt, BBf);
   RecursiveInfo i2 = getRecursiveCnt(BBf, BBt);
   return (i1.cnt > 0 && i1.reachable) ||
@@ -84,24 +82,23 @@ bool RecursiveBrInfo::isMoreRecursive(BasicBlock *BBt,
 void RecursiveBrInfo::addRecursiveBrLikely(BasicBlock &BB) {
   BranchInst *br = dyn_cast<BranchInst>(BB.getTerminator());
 
-  if (!br || !br->isConditional()) return;
+  if (!br || !br->isConditional())
+    return;
 
   BasicBlock *BBt = br->getSuccessor(0);
   BasicBlock *BBf = br->getSuccessor(1);
   Value *cond = br->getCondition();
 
-  if(isMoreRecursive(BBt, BBf))
+  if (isMoreRecursive(BBt, BBf))
     brSet.insert({br, true});
-  else if(isMoreRecursive(BBf, BBt))
+  else if (isMoreRecursive(BBf, BBt))
     brSet.insert({br, false});
 }
 
 /*
  * Getter of brSet
  */
-BrSet RecursiveBrInfo::getBrSet(){
-  return brSet;
-}
+BrSet RecursiveBrInfo::getBrSet() { return brSet; }
 
 /*
  * Recalculate recursive branches in given funcion
@@ -109,11 +106,12 @@ BrSet RecursiveBrInfo::getBrSet(){
  * @F       target function
  * @FAM     function analysis manager
  */
-void RecursiveBrInfo::recalculate(Function &F, FunctionAnalysisManager &FAM){
+void RecursiveBrInfo::recalculate(Function &F, FunctionAnalysisManager &FAM) {
   brSet.clear();
   DT = &FAM.getResult<DominatorTreeAnalysis>(F);
   recalculateRecursionBlocks(F);
-  for (BasicBlock &BB : F) addRecursiveBrLikely(BB);
+  for (BasicBlock &BB : F)
+    addRecursiveBrLikely(BB);
 }
 
 /* BrLikelyInfo implementation */
@@ -124,7 +122,8 @@ void RecursiveBrInfo::recalculate(Function &F, FunctionAnalysisManager &FAM){
  * @F       target function
  * @FAM     function analysis manager
  */
-void BrLikelyInfo::findRecursiveLikely(Function & F, FunctionAnalysisManager &FAM){
+void BrLikelyInfo::findRecursiveLikely(Function &F,
+                                       FunctionAnalysisManager &FAM) {
   RecursiveBrInfo brInfo;
   brInfo.recalculate(F, FAM);
   BrSet res = brInfo.getBrSet();
@@ -137,12 +136,12 @@ void BrLikelyInfo::findRecursiveLikely(Function & F, FunctionAnalysisManager &FA
  * @F       target function
  * @FAM     function analysis manager
  */
-void BrLikelyInfo::findLoopLikely(Function & F, FunctionAnalysisManager &FAM){
+void BrLikelyInfo::findLoopLikely(Function &F, FunctionAnalysisManager &FAM) {
   LoopBranch::LoopAnalysis a;
   LoopBranch::Loops loop = a.run(F, FAM);
-  for(BasicBlock & BB : F)
-    for(auto [br, EQ] : loop.getExitBranches(&BB)){
-      Value * cond = br->getCondition();
+  for (BasicBlock &BB : F)
+    for (auto [br, EQ] : loop.getExitBranches(&BB)) {
+      Value *cond = br->getCondition();
       brSet.insert({br, !EQ});
     }
 }
@@ -153,10 +152,26 @@ void BrLikelyInfo::findLoopLikely(Function & F, FunctionAnalysisManager &FAM){
  * @F       target function
  * @FAM     function analysis manager
  */
-void BrLikelyInfo::recalculate(Function &F, FunctionAnalysisManager &FAM){
+void BrLikelyInfo::recalculate(Function &F, FunctionAnalysisManager &FAM) {
   brSet.clear();
   findLoopLikely(F, FAM);
   findRecursiveLikely(F, FAM);
+}
+
+/*
+ * Get likely branches if possible
+ *
+ * @br      target branch instruction
+ * @return  BrLikely (br will be nullptr is not likely branch)
+ */
+BrLikely BrLikelyInfo::getBrLikely(BranchInst *br) {
+  bool bt = brSet.find({br, true}) != brSet.end(),
+       bf = brSet.find({br, false}) != brSet.end();
+  if (bt && !bf)
+    return {br, true};
+  if (bf && !bt)
+    return {br, false};
+  return {nullptr, false};
 }
 
 /*
@@ -166,15 +181,15 @@ void BrLikelyInfo::recalculate(Function &F, FunctionAnalysisManager &FAM){
  */
 void BrLikelyInfo::print(raw_ostream &OS) {
   for (auto &[br, cond] : brSet)
-    OS << *br << " " << cond  << " \n";
+    OS << *br << " " << cond << " \n";
 }
 
 /* BrLikelyPrinterPass implementation */
 
 BrLikelyPrinterPass::BrLikelyPrinterPass(raw_ostream &OS) : OS(OS) {}
 
-PreservedAnalyses
-BrLikelyPrinterPass::run(Function &F, FunctionAnalysisManager &FAM) {
+PreservedAnalyses BrLikelyPrinterPass::run(Function &F,
+                                           FunctionAnalysisManager &FAM) {
   OS << "Branch likely for function: " << F.getName() << "\n";
   BrLikelyInfo brInfo;
   brInfo.recalculate(F, FAM);
