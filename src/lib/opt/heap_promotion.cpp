@@ -26,6 +26,39 @@ static void collectrelatedVar(Value *V, std::vector<Value *> &relatedVars) {
 }
 
 /*
+ * Collect all instructions with relatedVars
+ *
+ * @F:            function to be looked at
+ * @relatedVars:  related var
+ * @relatedInsts:  result
+ */
+static void collectrelatedInst(Function &F, std::vector<Value *> &relatedVars,
+                               std::vector<Instruction *> &relatedInsts) {
+  // Iterate through all the instructions in the function
+  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+    Instruction *Inst = &*I;
+    if (std::find(relatedVars.begin(), relatedVars.end(), Inst) !=
+        relatedVars.end()) {
+      relatedInsts.push_back(Inst);
+      continue;
+    }
+
+    // Check each operand of the instruction
+    for (unsigned i = 0, e = Inst->getNumOperands(); i != e; ++i) {
+      Value *operand = Inst->getOperand(i);
+
+      // If the operand is one of the relatedVars, add the instruction to
+      // relatedInsts
+      if (std::find(relatedVars.begin(), relatedVars.end(), operand) !=
+          relatedVars.end()) {
+        relatedInsts.push_back(Inst);
+        break;
+      }
+    }
+  }
+}
+
+/*
  * Check if a Value is used as a function argument except for free
  *
  * @Var:      value to check
@@ -110,6 +143,10 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     std::vector<Value *> relatedVar;
     collectrelatedVar(MallocCall, relatedVar);
 
+    // Collect all instructions with relatedVar
+    std::vector<Instruction *> relatedInst;
+    collectrelatedInst(F, relatedVar, relatedInst);
+
     // Find matching free call
     CallInst *matchedFreeCall = findMatchingFreeCall(relatedVar);
 
@@ -145,9 +182,47 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     if (usedAsReturn)
       continue;
 
-    /*
-    Change to alloca
-    */
+    // Check if related varaible is not global
+    bool usedAsGlobal = false;
+    for (Value *Var : relatedVar) {
+      if (isa<GlobalValue>(Var)) {
+        usedAsGlobal = true;
+        break;
+      }
+    }
+
+    // Skip if used as global
+    if (usedAsGlobal)
+      continue;
+
+    outs() << "Malloc: " << *MallocCall << " Type: " << *MallocCall->getType()
+           << "\n";
+
+    // Change to alloca
+    LLVMContext &Context = F.getContext();
+    IRBuilder<> Builder(Context);
+
+    // Create alloca
+    Builder.SetInsertPoint(&F.getEntryBlock().front());
+    AllocaInst *Alloca = Builder.CreateAlloca(
+        MallocCall->getType()->getPointerElementType(), MallocArg);
+    Alloca->setName(MallocCall->getName() + "_stack");
+
+    outs() << "Alloca: " << *Alloca << " Type: " << *Alloca->getType() << "\n";
+
+    outs() << "Malloc Type: " << *MallocCall->getType()
+           << "Alloca Type: " << *Alloca->getType() << "\n\n";
+
+    // Replace all uses of malloc with alloca
+    MallocCall->replaceAllUsesWith(Alloca);
+
+    // Remove the free call
+    matchedFreeCall->eraseFromParent();
+
+    // Remove the malloc call
+    MallocCall->eraseFromParent();
+
+    changed = true;
   }
 
   return changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
