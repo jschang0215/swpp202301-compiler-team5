@@ -4,6 +4,7 @@
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 
+#include "opt/aload_reordering.h"
 #include "print_ir.h"
 
 using namespace std::string_literals;
@@ -34,6 +35,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(MallocFreeReorderingPass());
     FPM.addPass(LoadReorderingPass());
     FPM.addPass(ToAload::LoadToAloadPass());
+    FPM.addPass(AloadReorderingPass());
     
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
