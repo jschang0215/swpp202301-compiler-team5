@@ -11,6 +11,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include <vector>
+#include <set>
 
 using namespace llvm;
 
