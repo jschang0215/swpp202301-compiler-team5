@@ -12,6 +12,7 @@
 #include "./oracle.h"
 #include "./heap_promotion.h"
 #include "./malloc_free_reordering.h"
+#include "./aload_block.h"
 
 using namespace llvm;
 
