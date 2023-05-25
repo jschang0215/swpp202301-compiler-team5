@@ -1,16 +1,16 @@
 #ifndef SWPP_ALOAD_BLOCK
 #define SWPP_ALOAD_BLOCK
 
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/Dominators.h"
 #include <regex>
-#include <vector>
 #include <set>
+#include <vector>
 
 using namespace llvm;
 
