@@ -9,11 +9,11 @@
  * @return set of all allocas that p depends on, including null if p depends on
  * an argument
  */
-std::set<AllocaInst *> getAllocas(Value &p) {
-  std::set<AllocaInst *> allocas;
+std::set<Instruction *> getAllocas(Value &p) {
+  std::set<Instruction *> allocas;
 
-  // if p is not pointer, return empty set
-  if (!p.getType()->isPointerTy())
+  // if p is constant, return empty set
+  if (isa<Constant>(p))
     return allocas;
 
   if (auto *Arg = dyn_cast<Argument>(&p)) {
@@ -26,9 +26,12 @@ std::set<AllocaInst *> getAllocas(Value &p) {
   } else if (auto *I = dyn_cast<Instruction>(&p)) {
     // recursively find all allocas that p depends on
     for (auto &op : I->operands()) {
-      std::set<AllocaInst *> tmp = getAllocas(*op.get());
+      std::set<Instruction *> tmp = getAllocas(*op.get());
       allocas.insert(tmp.begin(), tmp.end());
     }
+    // if I is a call instruction, it should also be added to the set
+    if (auto *CI = dyn_cast<CallInst>(I))
+      allocas.insert(CI);
   }
 
   return allocas;
@@ -104,6 +107,42 @@ int reorderStores(std::vector<StoreInst *> &stores, Instruction &I) {
   return last;
 }
 
+bool processInstruction(Instruction &I, std::vector<StoreInst *> &stores, bool &changed) {
+  if (auto *SI = dyn_cast<StoreInst>(&I)) {
+    stores.push_back(SI);
+  } else if (isa<LoadInst>(I) || isa<CallInst>(I) || I.isTerminator()) {
+    if (stores.empty())
+      return false;
+
+    if (I.isTerminator()) {
+      // if I is terminator, this is the end of the BB
+      if (stores.empty())
+        return true;
+      // deposit all remaining instructions in stores before terminator
+      for (auto *SI : stores)
+        SI->moveBefore(&I);
+      changed = true;
+      return true;
+    }
+
+    // otherwise, I is a load or call instruction
+    int last = reorderStores(stores, I);
+    // if all insts in stores are independent of I, they can all move past I
+    if (!last)
+      return false;
+    // otherwise, if keeping 3 stores clustered before I is possible, do it
+    if (last < 3 && stores.size() >= 3)
+      last = 3;
+    // deposit insts that can't move past I before I
+    for (int i = 0; i < last; i++)
+      stores[i]->moveBefore(&I);
+    changed = true;
+    // remove deposited insts from stores
+    stores.erase(stores.begin(), stores.begin() + last);
+  }
+  return false;
+}
+
 PreservedAnalyses PreOraclePass::run(Function &F,
                                      FunctionAnalysisManager &FAM) {
   bool changed = false;
@@ -112,43 +151,11 @@ PreservedAnalyses PreOraclePass::run(Function &F,
     std::vector<StoreInst *> stores;
 
     for (auto &I : BB) {
-      if (auto *SI = dyn_cast<StoreInst>(&I)) {
-        stores.push_back(SI);
-      } else if (isa<LoadInst>(I) || isa<CallInst>(I) || I.isTerminator()) {
-        if (stores.empty())
-          continue;
-
-        if (I.isTerminator()) {
-          // if I is terminator, this is the end of the BB
-          if (stores.empty())
-            break;
-          // deposit all remaining instructions in stores before terminator
-          for (auto *SI : stores)
-            SI->moveBefore(&I);
-          changed = true;
-          break;
-        }
-
-        // otherwise, I is a load or call instruction
-        int last = reorderStores(stores, I);
-        // if all insts in stores are independent of I, they can all move past I
-        if (!last)
-          continue;
-        // otherwise, if keeping 3 stores clustered before I is possible, do it
-        if (last < 3 && stores.size() >= 3)
-          last = 3;
-        // deposit insts that can't move past I before I
-        for (int i = 0; i < last; i++)
-          stores[i]->moveBefore(&I);
-        changed = true;
-        // remove deposited insts from stores
-        stores.erase(stores.begin(), stores.begin() + last);
-      }
+      if (processInstruction(I, stores, changed))
+        break;
     }
   }
-  if (!changed)
-    return PreservedAnalyses::all();
-  return PreservedAnalyses::none();
+  return changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
