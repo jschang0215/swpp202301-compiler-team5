@@ -119,10 +119,6 @@ BrToSwitchPass::SwitchCaseInfo BrToSwitchPass::getSwitchCase(BasicBlock *BB,
                                                              Value *baseV) {
   BranchInst *br = dyn_cast<BranchInst>(BB->getTerminator());
 
-  if (!br)
-    outs() << brLikely.getBrLikely(br).first << " "
-           << brLikely.getBrLikely(br).second << "\n";
-
   // not added to other switch blocks, conditional br
   // if not base, it must contain 2 line and unique predecessor
   // and it is not likely branch
