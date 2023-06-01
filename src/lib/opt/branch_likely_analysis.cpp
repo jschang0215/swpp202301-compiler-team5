@@ -1,7 +1,5 @@
 #include "branch_likely_analysis.h"
 #include "loop_analysis.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/PassManager.h"
 
 using namespace BranchLikely;
 
