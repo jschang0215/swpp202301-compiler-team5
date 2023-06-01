@@ -2,7 +2,8 @@
 
 PreservedAnalyses SccpPass::run(Function &F, FunctionAnalysisManager &FAM) {
     SCCPPass Sccp;
-    return Sccp.run(F, FAM);
+    Sccp.run(F, FAM);
+    return PreservedAnalyses::none();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {

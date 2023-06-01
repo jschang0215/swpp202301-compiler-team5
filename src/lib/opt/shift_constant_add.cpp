@@ -23,14 +23,17 @@ static std::string getTypeAsString(Value *V) {
  * @Operator:   operator to be substituted
  * @Builder:    builder of caller function
  */
-void ShiftConstantAddPass::shiftToOp(Instruction *I, Instruction::BinaryOps Operator,
-                      IRBuilder<> &Builder) {
+void ShiftConstantAddPass::shiftToOp(Instruction *I,
+                                     Instruction::BinaryOps Operator,
+                                     IRBuilder<> &Builder) {
   Value *val = I->getOperand(0);
   Value *n = I->getOperand(1);
 
   /* New operand with 1 << n to be replaced */
   Constant *newOperand = ConstantInt::get(
       val->getType(), 1 << cast<ConstantInt>(n)->getZExtValue());
+
+  outs() << "   " << *newOperand << "\n";
 
   Value *newOperator = Builder.CreateBinOp(Operator, val, newOperand);
   I->replaceAllUsesWith(newOperator);
@@ -119,26 +122,32 @@ PreservedAnalyses ShiftConstantAddPass::run(Function &F,
 
       /* Shift instruction optimization */
       if (auto *shl = dyn_cast<ShlOperator>(&I)) {
-        /* left shift is replaced to mul */
-        shiftToOp(&I, Instruction::Mul, Builder);
-        toErase.push_back(&I);
-        changed = true;
+        if (dyn_cast<ConstantInt>(shl->getOperand(1))) {
+          /* left shift is replaced to mul */
+          shiftToOp(&I, Instruction::Mul, Builder);
+          toErase.push_back(&I);
+          changed = true;
+        }
       } else if (auto *lshr = dyn_cast<LShrOperator>(&I)) {
-        /* Logical right shift is replaced to unsigned div */
-        shiftToOp(&I, Instruction::UDiv, Builder);
-        toErase.push_back(&I);
-        changed = true;
+        if (dyn_cast<ConstantInt>(lshr->getOperand(1))) {
+          /* Logical right shift is replaced to unsigned div */
+          shiftToOp(&I, Instruction::UDiv, Builder);
+          toErase.push_back(&I);
+          changed = true;
+        }
       } else if (auto *ashr = dyn_cast<AShrOperator>(&I)) {
-        /*
-         * Arithmetic right shift is replacable only when operand is guaranteed
-         * to be positive. i.e. operand is positive constant Replace ashr only
-         * when operand is constant positive.
-         */
-        if (ConstantInt *constVal = dyn_cast<ConstantInt>(I.getOperand(0))) {
-          if (!constVal->isNegative()) {
-            shiftToOp(&I, Instruction::SDiv, Builder);
-            toErase.push_back(&I);
-            changed = true;
+        if (dyn_cast<ConstantInt>(ashr->getOperand(1))) {
+          /*
+           * Arithmetic right shift is replacable only when operand is
+           * guaranteed to be positive. i.e. operand is positive constant
+           * Replace ashr only when operand is constant positive.
+           */
+          if (ConstantInt *constVal = dyn_cast<ConstantInt>(I.getOperand(0))) {
+            if (!constVal->isNegative()) {
+              shiftToOp(&I, Instruction::SDiv, Builder);
+              toErase.push_back(&I);
+              changed = true;
+            }
           }
         }
       }
