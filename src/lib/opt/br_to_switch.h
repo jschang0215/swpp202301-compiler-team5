@@ -14,6 +14,7 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
+#include "branch_likely_analysis.h"
 #include <set>
 #include <vector>
 using namespace llvm;
@@ -47,10 +48,9 @@ class BrToSwitchPass : public PassInfoMixin<BrToSwitchPass> {
   bool makeSwitch(BasicBlock *base, Value *V, BlockPair def,
                   BlockPairMap &BBps);
   bool brToSwitch(BasicBlock *BB);
-  void getLoopBr(Function &F, FunctionAnalysisManager &FAM);
 
   BlockSet eraseBB;
-  BrSet loopBr;
+  BranchLikely::BrLikelyInfo brLikely;
 
   Function *F;
 

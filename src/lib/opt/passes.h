@@ -12,6 +12,9 @@
 #include "./oracle.h"
 #include "./heap_promotion.h"
 #include "./malloc_free_reordering.h"
+#include "./switch_to_br.h"
+#include "./br_to_switch.h"
+#include "./likely_branch_condition.h"
 
 using namespace llvm;
 
