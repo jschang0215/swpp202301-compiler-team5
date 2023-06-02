@@ -1,30 +1,37 @@
 #include "./pre_oracle.h"
 
 /*
- * Get a set of all alloca instructions that a pointer p depends on.
+ * Get a set of all possible memory allocations that a pointer p depends on.
  * If p depends on a pointer given as an argument, assume all such arguments are
  * dependent.
  *
  * @p:     pointer value
- * @return set of all allocas that p depends on, including null if p depends on
- * an argument
+ * @return set of all allocations that p depends on, including null if p depends
+ * on an argument
  */
 std::set<Instruction *> getAllocas(Value &p) {
+  static std::set<Value *> called;
   std::set<Instruction *> allocas;
 
-  // if p is constant, return empty set
-  if (isa<Constant>(p))
+  if (called.find(&p) != called.end())
     return allocas;
+  // if p is not a pointer type, return empty set
+  if (!p.getType()->isPointerTy())
+    return allocas;
+  called.insert(&p);
 
-  if (auto *Arg = dyn_cast<Argument>(&p)) {
+  if (auto *Glob = dyn_cast<GlobalVariable>(&p)) {
+    // if p is a global variable, we don't know what it points to
+    // so we assume they are all the same pointer
+    allocas.insert(nullptr);
+  } else if (auto *Arg = dyn_cast<Argument>(&p)) {
     // if p is an argument, we don't know what it points to
     // so we assume they are all the same pointer
-    if (Arg->getType()->isPointerTy())
-      allocas.insert(nullptr);
+    allocas.insert(nullptr);
   } else if (auto *AI = dyn_cast<AllocaInst>(&p)) {
     allocas.insert(AI);
   } else if (auto *I = dyn_cast<Instruction>(&p)) {
-    // recursively find all allocas that p depends on
+    // recursively find all allocations that p depends on
     for (auto &op : I->operands()) {
       std::set<Instruction *> tmp = getAllocas(*op.get());
       allocas.insert(tmp.begin(), tmp.end());
@@ -34,6 +41,7 @@ std::set<Instruction *> getAllocas(Value &p) {
       allocas.insert(CI);
   }
 
+  called.erase(&p);
   return allocas;
 }
 
@@ -132,7 +140,7 @@ bool processInstruction(Instruction &I, std::vector<StoreInst *> &stores, bool &
       return false;
     // otherwise, if keeping 3 stores clustered before I is possible, do it
     if (last < 3 && stores.size() >= 3)
-      last = 3;
+      last = stores.size();
     // deposit insts that can't move past I before I
     for (int i = 0; i < last; i++)
       stores[i]->moveBefore(&I);
