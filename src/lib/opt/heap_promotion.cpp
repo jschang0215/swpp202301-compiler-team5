@@ -195,9 +195,6 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     if (usedAsGlobal)
       continue;
 
-    outs() << "Malloc: " << *MallocCall << " Type: " << *MallocCall->getType()
-           << "\n";
-
     // Change to alloca
     LLVMContext &Context = F.getContext();
     IRBuilder<> Builder(Context);
@@ -207,11 +204,6 @@ PreservedAnalyses HeapPromotionPass::run(Function &F,
     AllocaInst *Alloca = Builder.CreateAlloca(
         MallocCall->getType()->getPointerElementType(), MallocArg);
     Alloca->setName(MallocCall->getName() + "_stack");
-
-    outs() << "Alloca: " << *Alloca << " Type: " << *Alloca->getType() << "\n";
-
-    outs() << "Malloc Type: " << *MallocCall->getType()
-           << "Alloca Type: " << *Alloca->getType() << "\n\n";
 
     // Replace all uses of malloc with alloca
     MallocCall->replaceAllUsesWith(Alloca);
