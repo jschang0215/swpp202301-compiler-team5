@@ -7,6 +7,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/InstIterator.h"
 #include <vector>
 
 using namespace llvm;
