@@ -9,8 +9,8 @@ entry:
 ; CHECK-NEXT:  %r = alloca i32
 ; CHECK-NEXT:  %s = alloca i32
 ; CHECK-NEXT:  store i32 1, i32* %p
-; CHECK-NEXT:  store i32 1, i32* %q
 ; CHECK-NEXT:  %x = load i32, i32* %p
+; CHECK-NEXT:  store i32 1, i32* %q
 ; CHECK-NEXT:  store i32 1, i32* %r
 ; CHECK-NEXT:  store i32 1, i32* %s
 ; CHECK-NEXT:  ret i32 0

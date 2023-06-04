@@ -2,10 +2,10 @@
 
 /*
  * Get all the clusters of store instructions in a module
- * 
+ *
  * @M:    module to be looked at
  * @MAM:  module analysis manager
- * 
+ *
  * @return vector of Cluster objects
  */
 std::vector<Cluster> Cluster::getClusters(Module &M,
@@ -54,7 +54,8 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
           }
         } else {
           /* the instruction is not store (end of the current cluster)
-           if the current cluster has at least 3 instructions, add to clusters */
+           if the current cluster has at least 3 instructions, add to clusters
+         */
           if (C->stores.size() >= 3)
             clusters.push_back(*C);
           if (!C->stores.empty()) {
@@ -78,7 +79,7 @@ std::vector<Cluster> Cluster::getClusters(Module &M,
 
 /*
  * Sort the clusters by priority, and cut off at 48 llvm instructions
- * 
+ *
  * @clusters:   vector of clusters to be processed
  *
  * @return processed vector of Cluster objects
@@ -110,10 +111,10 @@ std::vector<Cluster> Cluster::processClusters(std::vector<Cluster> clusters) {
 
 /*
  * Create a new oracle function
- * 
+ *
  * @M:    module to be looked at
  * @CTX:  context of the module
- * 
+ *
  * @return a pointer to the new oracle function
  */
 Function *makeOracle(Module &M, LLVMContext &CTX) {
@@ -134,7 +135,7 @@ Function *makeOracle(Module &M, LLVMContext &CTX) {
 
 /*
  * Fill in the oracle function with the switch statement and new basic blocks
- * 
+ *
  * @NewF:     pointer to the new oracle function
  * @clusters: vector of clusters
  * @CTX:      context of the module
@@ -155,9 +156,14 @@ void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
       Value *StoredAddr = iter++;
 
       if (clusters[i].stores[j]->getOperand(0)->getType() !=
-          Type::getInt64Ty(CTX))
-        StoredValue = Builder_i.CreateTrunc(
-            StoredValue, clusters[i].stores[j]->getOperand(0)->getType());
+          Type::getInt64Ty(CTX)) {
+        if (clusters[i].stores[j]->getOperand(0)->getType()->isPointerTy())
+          StoredValue = Builder_i.CreateBitOrPointerCast(
+              StoredValue, clusters[i].stores[j]->getOperand(0)->getType());
+        else
+          StoredValue = Builder_i.CreateSExtOrTrunc(
+              StoredValue, clusters[i].stores[j]->getOperand(0)->getType());
+      }
       // cast the pointer to the original type
       if (clusters[i].stores[j]->getOperand(1)->getType() !=
           Type::getInt64PtrTy(CTX))
@@ -186,7 +192,7 @@ void fillInOracle(Function *NewF, std::vector<Cluster> &clusters,
 
 /*
  * Replace the original store instructions with oracle calls
- * 
+ *
  * @clusters: vector of clusters
  * @CTX:      context of the module
  * @NewF:     pointer to the new oracle function
@@ -206,7 +212,11 @@ void replaceStoreWithOracle(std::vector<Cluster> &clusters, LLVMContext &CTX,
       auto *StoredValue = I->getOperand(0);
       auto *StoredAddr = I->getOperand(1);
 
-      args.push_back(Builder.CreateSExt(StoredValue, Type::getInt64Ty(CTX)));
+      if (StoredValue->getType()->isPointerTy())
+        args.push_back(
+            Builder.CreatePtrToInt(StoredValue, Type::getInt64Ty(CTX)));
+      else
+        args.push_back(Builder.CreateSExtOrTrunc(StoredValue, Type::getInt64Ty(CTX)));
       args.push_back(
           Builder.CreateBitOrPointerCast(StoredAddr, Type::getInt64PtrTy(CTX)));
     }

@@ -29,10 +29,10 @@ entry:
 ; CHECK-NEXT:  %p = alloca i32
 ; CHECK-NEXT:  %q = alloca i32
 ; CHECK-NEXT:  %r = alloca i32
+; CHECK-NEXT:  %x = call i32 @f()
 ; CHECK-NEXT:  store i32 1, i32* %p
 ; CHECK-NEXT:  store i32 1, i32* %q
 ; CHECK-NEXT:  store i32 1, i32* %r
-; CHECK-NEXT:  %x = call i32 @f()
 ; CHECK-NEXT:  ret i32 0
     %p = alloca i32
     %q = alloca i32
