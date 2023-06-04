@@ -29,11 +29,10 @@ bool AloadBlockPass::moveAload(BasicBlock *BB1, BasicBlock *BB2) {
   Instruction *terminator = BB1->getTerminator();
   std::vector<Instruction *> aloads;
   for (Instruction &I : *BB2) {
-    if (isAload(&I)) {
+    if (isAload(&I)) 
       aloads.push_back(&I);
-    } else {
+    else 
       break;
-    }
   }
   for (Instruction *I : aloads) {
     I->moveBefore(terminator);
@@ -81,9 +80,8 @@ bool AloadBlockPass::reduceAload(BasicBlock *BB1, BasicBlock *BB2,
       }
     }
   }
-  for (CallInst *CI : remove) {
+  for (CallInst *CI : remove) 
     CI->eraseFromParent();
-  }
   return changed;
 }
 

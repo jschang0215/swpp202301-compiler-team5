@@ -13,17 +13,17 @@ define i32 @main() {
 ; CHECK-NEXT:     br i1 [[COND]], label [[TRUE:%.*]], label [[FALSE:%.*]]
 ; CHECK:       true:
 ; CHECK-NEXT:     [[C1:%.*]] = add i32 1, 2
-; CHECK-NEXT:     [[C2:%.*]] = add i32 1, 2
+; CHECK-NEXT:     [[C2:%.*]] = add i32 1, [[C1]]
 ; CHECK-NEXT:     br label [[END:%.*]]
 ; CHECK:       false:
-; CHECK-NEXT:     [[C3:%.*]] = add i32 1, 2
+; CHECK-NEXT:     [[C3:%.*]] = add i32 1, 1
 ; CHECK-NEXT:     br label [[END]]
 ; CHECK:       end:
 ; CHECK-NEXT:     [[A3:%.*]] = call i32 @aload_i32(i32* [[P2]])
-; CHECK-NEXT:     [[C4:%.*]] = add i32 1, 2
-; CHECK-NEXT:     [[C5:%.*]] = add i32 3, 4
-; CHECK-NEXT:     [[U1:%.*]] = add i32 [[A3]], [[A3]]
-; CHECK-NEXT:     ret i32 0
+; CHECK-NEXT:     [[C4:%.*]] = add i32 1, 1
+; CHECK-NEXT:     [[C5:%.*]] = add i32 3, [[C4]]
+; CHECK-NEXT:     [[U1:%.*]] = add i32 [[A3]], [[C5]]
+; CHECK-NEXT:     ret i32 [[U1]]
 
 
 entry:
@@ -36,18 +36,18 @@ entry:
 true:
   %a1 = call i32 @aload_i32(i32* %p1)
   %c1 = add i32 1, 2
-  %c2 = add i32 1, 2
+  %c2 = add i32 1, %c1
   br label %end
 false:
   %a2 = call i32 @aload_i32(i32* %p1)
-  %c3 = add i32 1, 2
+  %c3 = add i32 1, 1
   br label %end
 end:
   %a3 = call i32 @aload_i32(i32* %p2)
-  %c4 = add i32 1, 2
-  %c5 = add i32 3, 4
-  %u1 = add i32 %a3, %a3
-  ret i32 0
+  %c4 = add i32 1, 1
+  %c5 = add i32 3, %c4
+  %u1 = add i32 %a3, %c5
+  ret i32 %u1
 }
 
 declare i32 @aload_i32(i32*)
