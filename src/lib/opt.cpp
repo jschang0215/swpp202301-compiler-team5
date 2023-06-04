@@ -4,6 +4,7 @@
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 
+#include "opt/aload_reordering.h"
 #include "print_ir.h"
 
 using namespace std::string_literals;
@@ -34,13 +35,18 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(MallocFreeReorderingPass());
     FPM.addPass(LoadReorderingPass());
     FPM.addPass(ToAload::LoadToAloadPass());
+    FPM.addPass(AloadReorderingPass());
+    FPM.addPass(LicmPass());
+    FPM.addPass(LoadReorderingPass());
+    FPM.addPass(SccpPass());
+    FPM.addPass(LoopBranch::RecursiveBranchConditionPass());
     FPM.addPass(SwitchBr::SwitchToBrPass());
     FPM.addPass(BranchLikely::LikelyBranchConditionPass());
     FPM.addPass(SwitchBr::BrToSwitchPass());
     // add new passes above this line
-    // make sure preoraclepass is added just before oraclepass
-    FPM.addPass(PreOraclePass());  // do not add passes after this line
-
+    // make sure preoraclepass runs just before oraclepass
+    FPM.addPass(PreOraclePass());  // do not add new passes below this line
+    
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
