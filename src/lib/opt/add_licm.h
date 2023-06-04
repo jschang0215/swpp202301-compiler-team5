@@ -1,18 +1,18 @@
-#ifndef SWPP_HEAP_PROMOTION
-#define SWPP_HEAP_PROMOTION
+#ifndef SWPP_LICM
+#define SWPP_LICM
 
+#include "llvm/Pass.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/InstIterator.h"
-#include <vector>
+#include "llvm/IR/Function.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Transforms/Scalar.h"
 
 using namespace llvm;
 
-class HeapPromotionPass : public PassInfoMixin<HeapPromotionPass> {
+class LicmPass : public PassInfoMixin<LicmPass> {
 public:
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
 };
