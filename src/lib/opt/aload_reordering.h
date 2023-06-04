@@ -17,9 +17,9 @@ public:
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
 
 private:
-  bool isAload(Instruction *I);
-  bool isMalloc(Instruction *I);
-  bool isFree(Instruction *I);
+  inline bool isAload(Instruction *I);
+  inline bool isMalloc(Instruction *I);
+  inline bool isFree(Instruction *I);
   int checkStackHeap(CallInst *CI);
   int getAloadCost(CallInst *CI);
 };

@@ -7,7 +7,7 @@
  * @I:     instruction to check
  * return: true if I is aload
  */
-bool AloadReorderingPass::isAload(Instruction *I) {
+inline bool AloadReorderingPass::isAload(Instruction *I) {
   std::regex aload_pattern("aload_i(8|16|32|64)");
   if (CallInst *CI = dyn_cast<CallInst>(I)) {
     StringRef functionName = CI->getCalledFunction()->getName();
@@ -23,7 +23,7 @@ bool AloadReorderingPass::isAload(Instruction *I) {
  * @I:     instruction to check
  * return: true if I is malloc
  */
-bool AloadReorderingPass::isMalloc(Instruction *I) {
+inline bool AloadReorderingPass::isMalloc(Instruction *I) {
   if (CallInst *CI = dyn_cast<CallInst>(I)) {
     StringRef functionName = CI->getCalledFunction()->getName();
     if (functionName == "malloc")
@@ -38,7 +38,7 @@ bool AloadReorderingPass::isMalloc(Instruction *I) {
  * @I:     instruction to check
  * return: true if I is free
  */
-bool AloadReorderingPass::isFree(Instruction *I) {
+inline bool AloadReorderingPass::isFree(Instruction *I) {
   if (CallInst *CI = dyn_cast<CallInst>(I)) {
     StringRef functionName = CI->getCalledFunction()->getName();
     if (functionName == "free")
