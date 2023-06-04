@@ -22,17 +22,19 @@ define i32 @main() {
 ; CHECK-NEXT:     [[A2:%.*]] = call i32 @aload_i32(i32* [[PTR3]])
 ; CHECK-NEXT:     [[A4:%.*]] = call i32 @aload_i32(i32* [[PTR3]])
 ; CHECK-NEXT:     [[C1:%.*]] = add i32 0, 0
-; CHECK-NEXT:     [[C2:%.*]] = add i32 0, 0
-; CHECK-NEXT:     [[C3:%.*]] = add i32 0, 0
-; CHECK-NEXT:     [[C4:%.*]] = add i32 0, 0
-; CHECK-NEXT:     [[C5:%.*]] = add i32 0, 0
-; CHECK-NEXT:     [[C6:%.*]] = mul i32 0, 0
-; CHECK-NEXT:     [[C7:%.*]] = mul i32 0, 0
+; CHECK-NEXT:     [[C2:%.*]] = add i32 0, [[C1]]
+; CHECK-NEXT:     [[C3:%.*]] = add i32 0, [[C2]]
+; CHECK-NEXT:     [[C4:%.*]] = add i32 0, [[C3]]
+; CHECK-NEXT:     [[C5:%.*]] = add i32 0, [[C4]]
+; CHECK-NEXT:     [[C6:%.*]] = mul i32 0, [[C5]]
+; CHECK-NEXT:     [[C7:%.*]] = mul i32 0, [[C6]]
 ; CHECK-NEXT:     [[U1:%.*]] = add i32 [[A1]], [[A4]]
 ; CHECK-NEXT:     [[U2:%.*]] = add i32 [[A2]], [[A3]]
+; CHECK-NEXT:     [[U3:%.*]] = add i32 [[U1]], [[U2]]
+; CHECK-NEXT:     [[U4:%.*]] = add i32 [[C7]], [[U3]]
 ; CHECK-NEXT:     call void @free(i32* [[PTR3]])
 ; CHECK-NEXT:     call void @free(i32* [[VALUE]])
-; CHECK-NEXT:     ret i32 0
+; CHECK-NEXT:     ret i32 [[U4]]
 entry:
   %ptr = alloca i32*, align 4
   %ptr2 = alloca i32*, align 4
@@ -52,17 +54,19 @@ end:
   %a3 = call i32 @aload_i32(i32* %a)
   %a4 = call i32 @aload_i32(i32* %ptr3)
   %c1 = add i32 0, 0
-  %c2 = add i32 0, 0
-  %c3 = add i32 0, 0
-  %c4 = add i32 0, 0
-  %c5 = add i32 0, 0
-  %c6 = mul i32 0, 0
-  %c7 = mul i32 0, 0
+  %c2 = add i32 0, %c1
+  %c3 = add i32 0, %c2
+  %c4 = add i32 0, %c3
+  %c5 = add i32 0, %c4
+  %c6 = mul i32 0, %c5
+  %c7 = mul i32 0, %c6
   %u1 = add i32 %a1, %a4
   %u2 = add i32 %a2, %a3
+  %u3 = add i32 %u1, %u2
+  %u4 = add i32 %c7, %u3
   call void @free(i32* %ptr3)
   call void @free(i32* %value)
-  ret i32 0
+  ret i32 %u4
 }
 
 declare i32 @aload_i32(i32*)
