@@ -16,6 +16,7 @@
 #include "./recursive_branch_condition.h"
 #include "./heap_promotion.h"
 #include "./malloc_free_reordering.h"
+#include "./pre_oracle.h"
 #include "./aload_reordering.h"
 #include "./add_licm.h"
 #include "./switch_to_br.h"

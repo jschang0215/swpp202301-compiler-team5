@@ -43,7 +43,10 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(SwitchBr::SwitchToBrPass());
     FPM.addPass(BranchLikely::LikelyBranchConditionPass());
     FPM.addPass(SwitchBr::BrToSwitchPass());
-
+    // add new passes above this line
+    // make sure preoraclepass runs just before oraclepass
+    FPM.addPass(PreOraclePass());  // do not add new passes below this line
+    
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
