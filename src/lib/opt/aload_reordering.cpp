@@ -33,48 +33,55 @@ bool AloadReorderingPass::isMalloc(Instruction *I) {
 }
 
 /*
- * check aload ptr is in heap or stack
+ * check instruction is free
  *
- * @CI:    ptr to check
- * return: true if stack false if heap
+ * @I:     instruction to check
+ * return: true if I is free
  */
-bool AloadReorderingPass::checkStackHeap(Value *ptr) {
-  int pointerLevel = 0;
-  Value *newPtr = ptr;
-  Instruction *I = dyn_cast<Instruction>(ptr);
-  BasicBlock::iterator itStart(I);
-  BasicBlock::iterator blockBegin = I->getParent()->begin();
-  itStart--;
-  while (itStart != blockBegin) {
-    if (LoadInst *LI = dyn_cast<LoadInst>(&*itStart)) {
-      if (LI == newPtr) {
-        pointerLevel++;
-        newPtr = LI->getPointerOperand();
-      }
-    } else if (StoreInst *SI = dyn_cast<StoreInst>(&*itStart)) {
-      if (SI->getPointerOperand()) {
-        pointerLevel--;
-        newPtr = SI->getValueOperand();
-        if (!pointerLevel) {
-          if (CallInst *CI = dyn_cast<CallInst>(&*itStart)) {
-            if (isMalloc(CI))
-              return false;
-          } else if (AllocaInst *AI = dyn_cast<AllocaInst>(&*itStart)) {
-            return true;
-          }
-        }
-      }
-    }
-    itStart--;
+bool AloadReorderingPass::isFree(Instruction *I) {
+  if (CallInst *CI = dyn_cast<CallInst>(I)) {
+    StringRef functionName = CI->getCalledFunction()->getName();
+    if (functionName == "free")
+      return true;
   }
   return false;
 }
 
 /*
+ * check aload ptr is in heap or stack
+ *
+ * @CI:    aload instruction
+ * return: 0 : stack, 1 : heap, -1 : cannot decide
+ */
+int AloadReorderingPass::checkStackHeap(CallInst *CI) {
+  Value *ptr = CI->getArgOperand(0);
+
+  // check pointer is used in call
+  for (User *U : ptr->users()) {
+    if (Instruction *I = dyn_cast<Instruction>(U)) {
+      if (CallInst *CI = dyn_cast<CallInst>(I)) {
+        if (!isAload(CI) && !isFree(CI))
+          return -1;
+      }
+    }
+  }
+  if (Instruction *I = dyn_cast<Instruction>(ptr)) {
+    if (AllocaInst *AI = dyn_cast<AllocaInst>(I))
+      return 0;
+    if (isMalloc(I))
+      return 1;
+  }
+  return -1;
+}
+
+/*
  * calculate cost of aload instruction
+ * not exact cost
+ * if pointer in stack : just 24 - cost
+ * if pointer in heap : just 34 - cost
  *
  * @CI:    aload instruction to calculate
- * return: cost
+ * return: cost, can be negative
  */
 int AloadReorderingPass::getAloadCost(CallInst *CI) {
   ToAload::LoadToAloadPass pass;
@@ -90,26 +97,13 @@ int AloadReorderingPass::getAloadCost(CallInst *CI) {
       cost += pass.getCost(nextInst);
     nextInst = nextInst->getNextNode();
   }
-  Value *ptr = CI->getArgOperand(0);
-  if (AllocaInst *I = dyn_cast<AllocaInst>(ptr)) {
-    return 24 - cost > 0 ? 24 - cost : 1;
-  } else if (CallInst *I = dyn_cast<CallInst>(ptr)) {
-    if (isMalloc(I)) {
-      return 34 - cost > 0 ? 34 - cost : 1;
-    } else {
-      if (checkStackHeap(ptr)) {
-        return 24 - cost > 0 ? 24 - cost : 1;
-      } else {
-        return 34 - cost > 0 ? 34 - cost : 1;
-      }
-    }
-  } else {
-    if (checkStackHeap(ptr)) {
-      return 24 - cost > 0 ? 24 - cost : 1;
-    } else {
-      return 34 - cost > 0 ? 34 - cost : 1;
-    }
-  }
+  int c = checkStackHeap(CI);
+  if (c == 0)
+    return 24 - cost;
+  else if (c == 1)
+    return 34 - cost;
+  else
+    return 1; // can not decide stack or heap, don't move
 }
 
 PreservedAnalyses AloadReorderingPass::run(Function &F,
@@ -120,7 +114,7 @@ PreservedAnalyses AloadReorderingPass::run(Function &F,
       if (isAload(&*I)) {
         CallInst *CI = dyn_cast<CallInst>(&*I);
         ++I;
-        while (isAload(CI->getNextNode()) && getAloadCost(CI) == 1) {
+        while (isAload(CI->getNextNode()) && getAloadCost(CI) < 1) {
           CI->moveAfter(CI->getNextNode());
           changed = true;
         }

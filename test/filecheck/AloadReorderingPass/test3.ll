@@ -18,9 +18,9 @@ define i32 @main() {
 ; CHECK-NEXT:     br label [[END:%.*]]
 ; CHECK:       end:
 ; CHECK-NEXT:     [[A1:%.*]] = call i32 @aload_i32(i32* [[VALUE]])
-; CHECK-NEXT:     [[A4:%.*]] = call i32 @aload_i32(i32* [[PTR3]])
 ; CHECK-NEXT:     [[A3:%.*]] = call i32 @aload_i32(i32* [[A]])
 ; CHECK-NEXT:     [[A2:%.*]] = call i32 @aload_i32(i32* [[PTR3]])
+; CHECK-NEXT:     [[A4:%.*]] = call i32 @aload_i32(i32* [[PTR3]])
 ; CHECK-NEXT:     [[C1:%.*]] = add i32 0, 0
 ; CHECK-NEXT:     [[C2:%.*]] = add i32 0, 0
 ; CHECK-NEXT:     [[C3:%.*]] = add i32 0, 0
