@@ -35,6 +35,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(MallocFreeReorderingPass());
     FPM.addPass(LoadReorderingPass());
     FPM.addPass(ToAload::LoadToAloadPass());
+    FPM.addPass(AloadBlockPass());
     FPM.addPass(AloadReorderingPass());
     FPM.addPass(LicmPass());
     FPM.addPass(LoadReorderingPass());
