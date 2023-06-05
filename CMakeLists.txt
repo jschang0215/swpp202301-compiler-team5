@@ -111,6 +111,7 @@ endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
 include(CTest)
+add_opt_pass(O3Pass add_o3.cpp)
 add_opt_pass(SimplePass simple.cpp)
 test_opt_pass(SimplePass 1)
 add_opt_pass(LoopsPrinterPass loop_analysis.cpp)
@@ -153,10 +154,9 @@ test_opt_pass(RecursiveBranchConditionPass 0)
 add_opt_pass(LicmPass add_licm.cpp)
 test_opt_pass(LicmPass 0)
 add_opt_pass(PreOraclePass pre_oracle.cpp)
-test_opt_pass(PreOraclePass 1)
+test_opt_pass(PreOraclePass 0)
 add_opt_pass(OraclePass oracle.cpp)
 test_opt_pass(OraclePass 0)
-add_opt_pass(O3Pass add_o3.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
