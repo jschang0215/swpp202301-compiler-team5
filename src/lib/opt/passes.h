@@ -16,6 +16,12 @@
 #include "./recursive_branch_condition.h"
 #include "./heap_promotion.h"
 #include "./malloc_free_reordering.h"
+#include "./aload_block.h"
+#include "./pre_oracle.h"
+#include "./aload_reordering.h"
+#include "./add_licm.h"
+#include "./switch_to_br.h"
+#include "./likely_branch_condition.h"
 #include "./add_o3.h"
 
 using namespace llvm;
