@@ -9,36 +9,30 @@
  * @return set of all allocations that p depends on, including null if p depends
  * on an argument
  */
-std::set<Instruction *> getAllocas(Value &p) {
+std::set<Value *> getAllocas(Value &p) {
   static std::set<Value *> called;
-  std::set<Instruction *> allocas;
+  std::set<Value *> allocas;
 
   if (called.find(&p) != called.end())
     return allocas;
-  // if p is not a pointer type, return empty set
-  if (!p.getType()->isPointerTy())
-    return allocas;
   called.insert(&p);
 
-  if (auto *Glob = dyn_cast<GlobalVariable>(&p)) {
-    // if p is a global variable, we don't know what it points to
-    // so we assume they are all the same pointer
-    allocas.insert(nullptr);
-  } else if (auto *Arg = dyn_cast<Argument>(&p)) {
-    // if p is an argument, we don't know what it points to
-    // so we assume they are all the same pointer
+  if (isa<GlobalVariable>(&p) || isa<ConstantExpr>(&p) || isa<Argument>(&p)) {
     allocas.insert(nullptr);
   } else if (auto *AI = dyn_cast<AllocaInst>(&p)) {
     allocas.insert(AI);
+  } else if (auto *CI = dyn_cast<CallInst>(&p)) {
+    for (auto &op : CI->args()) {
+      auto tmp = getAllocas(*op.get());
+      allocas.insert(tmp.begin(), tmp.end());
+    }
+    allocas.insert(nullptr);
   } else if (auto *I = dyn_cast<Instruction>(&p)) {
     // recursively find all allocations that p depends on
     for (auto &op : I->operands()) {
-      std::set<Instruction *> tmp = getAllocas(*op.get());
+      auto tmp = getAllocas(*op.get());
       allocas.insert(tmp.begin(), tmp.end());
     }
-    // if I is a call instruction, it should also be added to the set
-    if (auto *CI = dyn_cast<CallInst>(I))
-      allocas.insert(CI);
   }
 
   called.erase(&p);
@@ -53,19 +47,9 @@ std::set<Instruction *> getAllocas(Value &p) {
  * @return  true if p1 and p2 may be dependent, false otherwise
  */
 bool checkPointerDependency(Value &p1, Value &p2) {
-  // if either p1 or p2 is not pointer, return false
-  if (!p1.getType()->isPointerTy() || !p2.getType()->isPointerTy())
-    return false;
-
   // if p1 and p2 are same, return true
   if (&p1 == &p2)
     return true;
-
-  // if p1 and p2 are same global variable, return true
-  if (auto *GV1 = dyn_cast<GlobalVariable>(&p1))
-    if (auto *GV2 = dyn_cast<GlobalVariable>(&p2))
-      if (GV1 == GV2)
-        return true;
 
   auto allocas1 = getAllocas(p1);
   auto allocas2 = getAllocas(p2);
@@ -89,15 +73,14 @@ int reorderStores(std::vector<StoreInst *> &stores, Instruction &I) {
   // similar to bubble sort
   int last = stores.size();
   for (int i = last - 1; i >= 0; i--) {
-    bool isIndependent = true;
-    for (auto &op : I.operands()) {
-      if (checkPointerDependency(*op.get(), *stores[i]->getPointerOperand())) {
-        isIndependent = false;
-        break;
-      }
+    if (auto *LI = dyn_cast<LoadInst>(&I)) {
+      if (checkPointerDependency(*LI->getPointerOperand(),
+                                 *stores[i]->getPointerOperand()))
+        continue;
+    } else if (isa<CallInst>(&I)) {
+      if (checkPointerDependency(I, *stores[i]->getPointerOperand()))
+        continue;
     }
-    if (!isIndependent)
-      continue;
     int j = i;
     for (; j < last - 1; j++) {
       auto *p1 = stores[j]->getPointerOperand();
@@ -115,7 +98,8 @@ int reorderStores(std::vector<StoreInst *> &stores, Instruction &I) {
   return last;
 }
 
-bool processInstruction(Instruction &I, std::vector<StoreInst *> &stores, bool &changed) {
+bool processInstruction(Instruction &I, std::vector<StoreInst *> &stores,
+                        bool &changed) {
   if (auto *SI = dyn_cast<StoreInst>(&I)) {
     stores.push_back(SI);
   } else if (isa<LoadInst>(I) || isa<CallInst>(I) || I.isTerminator()) {
