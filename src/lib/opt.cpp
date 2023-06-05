@@ -44,10 +44,11 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(SwitchBr::SwitchToBrPass());
     FPM.addPass(BranchLikely::LikelyBranchConditionPass());
     FPM.addPass(SwitchBr::BrToSwitchPass());
+    FPM.addPass(O3Pass());
     // add new passes above this line
     // make sure preoraclepass runs just before oraclepass
-    FPM.addPass(PreOraclePass());  // do not add new passes below this line
-    
+    FPM.addPass(PreOraclePass()); // do not add new passes below this line
+
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
@@ -56,6 +57,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     MPM.addPass(OraclePass());
 
     MPM.run(*__M, __MAM);
+
     sc::print_ir::printIRIfVerbose(*__M, "After optimization");
   } catch (const std::exception &e) {
     return RetType::Err(OptInternalError(e));
