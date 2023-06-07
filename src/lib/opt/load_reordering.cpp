@@ -1,6 +1,21 @@
 #include "load_reordering.h"
 
 /*
+ * check instruction is malloc
+ *
+ * @I:     instruction to check
+ * return: true if I is malloc
+ */
+inline bool isMalloc(Instruction *I) {
+  if (CallInst *CI = dyn_cast<CallInst>(I)) {
+    StringRef functionName = CI->getCalledFunction()->getName();
+    if (functionName == "malloc")
+      return true;
+  }
+  return false;
+}
+
+/*
  *  move load to front of block
  *  load after LastDepInst -> move load after load, keep orders of load
  *
@@ -39,11 +54,13 @@ bool LoadReorderingPass::moveInstruction(LoadInst *LI,
 
 bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
                                        Instruction *O) {
+  if(!isa<PointerType>(V1->getType())) return false;
   int pointerLevel = 0;
   std::set<Value *> valueSet;
   valueSet.insert(V2);
   Value *newV1 = V1;
   Value *newV2 = V2;
+  BasicBlock *parent = L->getParent();
   // iterate back from load instruction
   BasicBlock::iterator itStart(L);
   BasicBlock::iterator blockBegin = L->getParent()->begin();
@@ -51,7 +68,7 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
     itStart--;
     Instruction *target = &*itStart;
     if (StoreInst *SI = dyn_cast<StoreInst>(target)) {
-      if (SI->getPointerOperand() == newV2) {
+      if (SI->getPointerOperand() == newV2 && pointerLevel > 0) {
         pointerLevel--;
         newV2 = SI->getValueOperand();
       }
@@ -62,8 +79,24 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
         newV2 = LI->getPointerOperand();
       }
     }
+    if((isa<GetElementPtrInst>(target) || isa<PtrToIntInst>(target) || isa<IntToPtrInst>(target)) && target == newV2){
+      return true;
+    }
+    if(CallInst *CI = dyn_cast<CallInst>(target)){
+      if(newV2 == target && !isMalloc(CI)){
+        return true;
+      }
+    }
     if (!pointerLevel) {
       valueSet.insert(newV2);
+    }
+    if(Instruction *VI = dyn_cast<Instruction>(newV2)){
+      if(parent != VI->getParent()){
+        return true;
+      }
+    }
+    if(Argument *Arg = dyn_cast<Argument>(newV2)){
+      return true;
     }
   }
   pointerLevel = 0;
@@ -73,7 +106,7 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
     itStart2--;
     Instruction *target = &*itStart2;
     if (StoreInst *SI = dyn_cast<StoreInst>(target)) {
-      if (SI->getPointerOperand() == newV1) {
+      if (SI->getPointerOperand() == newV1 && pointerLevel > 0) {
         pointerLevel--;
         newV1 = SI->getValueOperand();
       }
@@ -84,10 +117,26 @@ bool LoadReorderingPass::isSamePointer(Value *V1, Value *V2, Instruction *L,
         newV1 = LI->getPointerOperand();
       }
     }
+    if((isa<GetElementPtrInst>(target) || isa<PtrToIntInst>(target) || isa<IntToPtrInst>(target)) && target == newV1){
+      return true;
+    }
+    if(CallInst *CI = dyn_cast<CallInst>(target)){
+      if(newV1 == target && !isMalloc(CI)){
+        return true;
+      }
+    }
     if (!pointerLevel) {
       if (valueSet.count(newV1) > 0) {
         return true;
       }
+    }
+    if(Instruction *VI = dyn_cast<Instruction>(newV1)){
+      if(parent != VI->getParent()){
+        return true;
+      }
+    }
+    if(Argument *Arg = dyn_cast<Argument>(newV1)){
+      return true;
     }
   }
   return false;
