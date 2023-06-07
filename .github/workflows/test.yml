@@ -50,15 +50,8 @@ jobs:
         name: get compiler repo
         with:
           path: ${{ github.workspace }}/compiler
-      - uses: actions/cache@v3
-        name: check cache compiler
-        id: build_cache
-        with:
-          path: ${{ github.workspace }}/compiler/build
-          key: ${{ runner.os }}-compiler
       # need build
-      - if: steps.build_cache.outputs.cache-hit != 'true'
-        name: build compiler
+      - name: build compiler
         run: |
           cd $GITHUB_WORKSPACE/compiler
           cmake -GNinja -Bbuild
