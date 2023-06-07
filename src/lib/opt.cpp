@@ -31,7 +31,6 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
     FPM.addPass(SimplePass());
-    FPM.addPass(LoopBranch::LoopBranchConditionPass());
     FPM.addPass(AddSumPass());
     FPM.addPass(ShiftConstantAddPass());
     FPM.addPass(HeapPromotionPass());
@@ -41,13 +40,12 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(AloadBlockPass());
     FPM.addPass(AloadReorderingPass());
     FPM.addPass(LicmPass());
-    FPM.addPass(LoadReorderingPass());
     FPM.addPass(SccpPass());
-    FPM.addPass(LoopBranch::RecursiveBranchConditionPass());
+    FPM.addPass(O3Pass());
     FPM.addPass(SwitchBr::SwitchToBrPass());
     FPM.addPass(BranchLikely::LikelyBranchConditionPass());
     FPM.addPass(SwitchBr::BrToSwitchPass());
-    FPM.addPass(O3Pass());
+
     // add new passes above this line
     // make sure preoraclepass runs just before oraclepass
     FPM.addPass(PreOraclePass()); // do not add new passes below this line
