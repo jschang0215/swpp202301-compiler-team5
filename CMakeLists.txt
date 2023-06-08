@@ -157,6 +157,7 @@ add_opt_pass(PreOraclePass pre_oracle.cpp)
 test_opt_pass(PreOraclePass 0)
 add_opt_pass(OraclePass oracle.cpp)
 test_opt_pass(OraclePass 0)
+add_opt_pass(DeclarePass declare.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)

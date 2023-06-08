@@ -23,6 +23,7 @@
 #include "./switch_to_br.h"
 #include "./likely_branch_condition.h"
 #include "./add_o3.h"
+#include "./declare.h"
 
 using namespace llvm;
 
