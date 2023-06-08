@@ -6,6 +6,7 @@
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 
 #include "opt/aload_reordering.h"
+#include "opt/declare.h"
 #include "print_ir.h"
 
 using namespace std::string_literals;
@@ -56,6 +57,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
     MPM.addPass(OraclePass());
+    MPM.addPass(DeclarePass());
 
     MPM.run(*__M, __MAM);
 
